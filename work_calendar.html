@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Tracking Calendar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .current-month {
+            font-size: 1.8em;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .calendar {
+            padding: 20px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 1px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .day-header {
+            background: #f8f9fa;
+            padding: 15px 5px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9em;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .week-total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-align: center;
+            height: 80px;
+        }
+
+        .week-total div {
+            margin: 2px 0;
+        }
+
+        .day-cell {
+            background: white;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px 4px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .day-cell:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border-color: #4facfe;
+        }
+
+        .day-cell.other-month {
+            color: #ccc;
+            background: #f8f9fa;
+        }
+
+        .day-cell.half-day {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-color: #f39c12;
+        }
+
+        .day-cell.full-day {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-color: #f39c12;
+        }
+
+        .day-cell.paid {
+            background: linear-gradient(135deg, #d4edda 0%, #00b894 100%) !important;
+            border-color: #00b894;
+            color: white;
+        }
+
+        .day-number {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 2px;
+            line-height: 1;
+        }
+
+        .work-indicator {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 2px 0;
+            color: #e17055;
+            line-height: 1;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .paid-checkbox {
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            font-size: 0.8em;
+            gap: 3px;
+            height: 16px;
+        }
+
+        .paid-checkbox input {
+            width: 14px;
+            height: 14px;
+            accent-color: #00b894;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .monthly-summary {
+            background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .summary-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: #636e72;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .calendar-grid {
+                font-size: 0.8em;
+            }
+            
+            .day-cell {
+                height: 70px;
+                padding: 4px 2px;
+            }
+            
+            .day-header {
+                height: 45px;
+            }
+            
+            .week-total {
+                height: 70px;
+            }
+            
+            .current-month {
+                font-size: 1.4em;
+            }
+            
+            .nav-btn {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-grid {
+                font-size: 0.7em;
+            }
+            
+            .day-cell {
+                height: 60px;
+                padding: 3px 1px;
+            }
+            
+            .day-header {
+                height: 40px;
+            }
+            
+            .week-total {
+                font-size: 0.7em;
+                padding: 5px 2px;
+                height: 60px;
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.3s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="nav-controls">
+                <button class="nav-btn" onclick="previousMonth()">‹ Previous</button>
+                <h1 class="current-month" id="currentMonth"></h1>
+                <button class="nav-btn" onclick="nextMonth()">Next ›</button>
+            </div>
+        </div>
+        
+        <div class="calendar">
+            <div class="calendar-grid" id="calendarGrid"></div>
+            
+            <div class="monthly-summary">
+                <h3>Monthly Summary</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-value" id="monthlyDays">0</div>
+                        <div class="summary-label">Days Worked</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="monthlyHours">0</div>
+                        <div class="summary-label">Total Hours</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="monthlySalary">$0</div>
+                        <div class="summary-label">Total Salary</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="monthlyPaid">$0</div>
+                        <div class="summary-label">Amount Paid</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: white; border: 2px solid #ddd;"></div>
+                    <span>Click once: Half day (/) - 3.5hrs, $108</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);"></div>
+                    <span>Click twice: Full day (X) - 7.5hrs, $216</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #d4edda 0%, #00b894 100%);"></div>
+                    <span>Check $ box: Paid (green background)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f8f9fa;"></div>
+                    <span>Click third time: Reset to blank</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date(2025, 0, 1); // Start at January 2025
+        let workData = {};
+
+        // Load data from localStorage or initialize (with fallback for sandboxed environments)
+        function loadData() {
+            try {
+                const stored = localStorage.getItem('workCalendarData');
+                if (stored) {
+                    workData = JSON.parse(stored);
+                }
+            } catch (e) {
+                // localStorage not available in sandboxed environment
+                console.log('LocalStorage not available, using in-memory storage');
+                workData = {};
+            }
+        }
+
+        // Save data to localStorage (with fallback for sandboxed environments)
+        function saveData() {
+            try {
+                localStorage.setItem('workCalendarData', JSON.stringify(workData));
+            } catch (e) {
+                // localStorage not available, data will persist only during session
+                console.log('LocalStorage not available, data stored in memory only');
+            }
+        }
+
+        // Get work status for a specific date
+        function getWorkStatus(dateKey) {
+            return workData[dateKey] || { status: 0, paid: false };
+        }
+
+        // Set work status for a specific date
+        function setWorkStatus(dateKey, status, paid = false) {
+            if (status === 0 && !paid) {
+                delete workData[dateKey];
+            } else {
+                workData[dateKey] = { status, paid };
+            }
+            saveData();
+        }
+
+        // Handle day cell click
+        function handleDayClick(dateKey, element) {
+            const current = getWorkStatus(dateKey);
+            let newStatus = (current.status + 1) % 3;
+            
+            // Add pulse animation only to the clicked cell
+            element.classList.add('pulse');
+            setTimeout(() => element.classList.remove('pulse'), 300);
+            
+            setWorkStatus(dateKey, newStatus, newStatus > 0 ? current.paid : false);
+            updateSingleCell(element, dateKey, newStatus, newStatus > 0 ? current.paid : false);
+            updateMonthlySummary();
+        }
+
+        // Update a single cell without re-rendering the entire calendar
+        function updateSingleCell(cell, dateKey, status, paid) {
+            // Remove all status classes
+            cell.classList.remove('half-day', 'full-day', 'paid');
+            
+            // Apply new status classes
+            if (status === 1) {
+                cell.classList.add('half-day');
+                if (paid) cell.classList.add('paid');
+            } else if (status === 2) {
+                cell.classList.add('full-day');
+                if (paid) cell.classList.add('paid');
+            }
+            
+            // Update work indicator
+            let workIndicator = cell.querySelector('.work-indicator');
+            if (!workIndicator) {
+                workIndicator = document.createElement('div');
+                workIndicator.className = 'work-indicator';
+                cell.insertBefore(workIndicator, cell.children[1]);
+            }
+            
+            if (status === 1) {
+                workIndicator.textContent = '/';
+            } else if (status === 2) {
+                workIndicator.textContent = 'X';
+            } else {
+                workIndicator.textContent = '';
+            }
+            
+            // Update paid checkbox
+            let checkboxDiv = cell.querySelector('.paid-checkbox');
+            if (status > 0) {
+                if (!checkboxDiv) {
+                    checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'paid-checkbox';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.onclick = (e) => {
+                        e.stopPropagation();
+                        handlePaidChange(dateKey, e.target.checked);
+                    };
+                    
+                    const label = document.createElement('span');
+                    label.textContent = '$';
+                    
+                    checkboxDiv.appendChild(checkbox);
+                    checkboxDiv.appendChild(label);
+                    cell.appendChild(checkboxDiv);
+                }
+                checkboxDiv.querySelector('input').checked = paid;
+            } else if (checkboxDiv) {
+                checkboxDiv.remove();
+            }
+        }
+
+        // Handle paid checkbox change
+        function handlePaidChange(dateKey, checked) {
+            const current = getWorkStatus(dateKey);
+            setWorkStatus(dateKey, current.status, checked);
+            
+            // Update the specific cell's paid status
+            const cell = document.querySelector(`[data-date="${dateKey}"]`);
+            if (cell) {
+                if (checked) {
+                    cell.classList.add('paid');
+                } else {
+                    cell.classList.remove('paid');
+                }
+            }
+            
+            updateMonthlySummary();
+        }
+
+        // Calculate week totals
+        function calculateWeekTotals(weekDates) {
+            let days = 0, hours = 0, salary = 0;
+            
+            weekDates.forEach(dateKey => {
+                const status = getWorkStatus(dateKey);
+                if (status.status === 1) { // Half day
+                    days += 0.5;
+                    hours += 3.5;
+                    salary += 108;
+                } else if (status.status === 2) { // Full day
+                    days += 1;
+                    hours += 7.5;
+                    salary += 216;
+                }
+            });
+            
+            return { days, hours, salary };
+        }
+
+        // Calculate monthly totals
+        function calculateMonthlyTotals() {
+            let days = 0, hours = 0, salary = 0, paid = 0;
+            
+            Object.entries(workData).forEach(([dateKey, data]) => {
+                const date = new Date(dateKey);
+                if (date.getMonth() === currentDate.getMonth() && 
+                    date.getFullYear() === currentDate.getFullYear()) {
+                    
+                    if (data.status === 1) { // Half day
+                        days += 0.5;
+                        hours += 3.5;
+                        salary += 108;
+                        if (data.paid) paid += 108;
+                    } else if (data.status === 2) { // Full day
+                        days += 1;
+                        hours += 7.5;
+                        salary += 216;
+                        if (data.paid) paid += 216;
+                    }
+                }
+            });
+            
+            return { days, hours, salary, paid };
+        }
+
+        // Render calendar
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthElement = document.getElementById('currentMonth');
+            
+            // Update month display
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            monthElement.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            
+            // Clear grid
+            grid.innerHTML = '';
+            
+            // Add day headers + totals header
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Totals'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            // Calculate previous month days to show
+            const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 0);
+            const prevMonthDays = prevMonth.getDate();
+            
+            // Calculate next month year and month
+            const nextMonthYear = currentDate.getMonth() === 11 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
+            const nextMonth = currentDate.getMonth() === 11 ? 0 : currentDate.getMonth() + 1;
+            
+            let currentWeekDates = [];
+            let dayCount = 0;
+            
+            // Generate calendar days
+            for (let week = 0; week < 6; week++) {
+                let weekHasDaysInCurrentMonth = false;
+                const weekDates = [];
+                
+                for (let day = 0; day < 7; day++) {
+                    let dayNumber, isCurrentMonth, cellDate;
+                    
+                    if (dayCount < startingDayOfWeek) {
+                        // Previous month
+                        dayNumber = prevMonthDays - startingDayOfWeek + dayCount + 1;
+                        isCurrentMonth = false;
+                        const prevMonthYear = currentDate.getMonth() === 0 ? currentDate.getFullYear() - 1 : currentDate.getFullYear();
+                        const prevMonthNum = currentDate.getMonth() === 0 ? 11 : currentD
