@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SharePoint Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .search-container {
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-title {
+            font-size: 3rem;
+            font-weight: 300;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: fadeInDown 0.8s ease-out forwards;
+        }
+
+        .search-box-wrapper {
+            position: relative;
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease-out 0.3s forwards;
+        }
+
+        .search-box {
+            width: 500px;
+            height: 60px;
+            padding: 0 25px;
+            font-size: 18px;
+            border: 3px solid #e0e0e0;
+            border-radius: 50px;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+
+        .search-box:focus {
+            border-color: #3498db;
+            box-shadow: 0 8px 30px rgba(52, 152, 219, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .search-box::placeholder {
+            color: #bdc3c7;
+            transition: color 0.3s ease;
+        }
+
+        .search-box:focus::placeholder {
+            color: #95a5a6;
+        }
+
+        .search-button {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            z-index: 3;
+        }
+
+        .search-button:hover {
+            background: linear-gradient(135deg, #2980b9, #1f639a);
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .search-button:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        /* Floating particles animation */
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(45deg, #3498db, #9b59b6);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            animation: float 4s infinite ease-in-out;
+        }
+
+        /* Ripple effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(52, 152, 219, 0.1);
+            pointer-events: none;
+            animation: ripple 0.6s ease-out;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: #7f8c8d;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .typing-indicator.active {
+            opacity: 1;
+        }
+
+        @keyframes fadeInDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0;
+            }
+            50% { 
+                transform: translateY(-20px) rotate(180deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 100px;
+                height: 100px;
+                opacity: 0;
+            }
+        }
+
+        /* Mouse trail effect */
+        .mouse-trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(45deg, #3498db, #e74c3c);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.8;
+            animation: trail 1s ease-out forwards;
+        }
+
+        @keyframes trail {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .search-box {
+                width: 350px;
+                height: 55px;
+                font-size: 16px;
+            }
+            
+            .search-title {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .search-box {
+                width: 280px;
+                height: 50px;
+                font-size: 14px;
+            }
+            
+            .search-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1 class="search-title">Search SharePoint</h1>
+        <div class="search-box-wrapper">
+            <input type="text" class="search-box" placeholder="Enter your search terms..." id="searchInput">
+            <button class="search-button" id="searchButton">🔍</button>
+            <div class="typing-indicator" id="typingIndicator">Press Enter to search...</div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const searchContainer = document.querySelector('.search-container');
+
+        // Function to perform search
+        function performSearch() {
+            const keyword = searchInput.value.trim();
+            if (keyword) {
+                const searchUrl = `https://018gc.sharepoint.com/_layouts/15/sharepoint.aspx?q=${encodeURIComponent(keyword)}&v=search`;
+                window.location.href = searchUrl;
+            }
+        }
+
+        // Search functionality
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        searchButton.addEventListener('click', performSearch);
+
+        // Typing indicator
+        searchInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                typingIndicator.classList.add('active');
+            } else {
+                typingIndicator.classList.remove('active');
+            }
+        });
+
+        // Ripple effect on search box focus
+        searchInput.addEventListener('focus', function(e) {
+            createRipple(e);
+        });
+
+        function createRipple(e) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            
+            const rect = searchInput.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ripple.style.left = (x - 50) + 'px';
+            ripple.style.top = (y - 50) + 'px';
+            
+            searchInput.parentElement.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        }
+
+        // Mouse trail effect
+        let mouseTrails = [];
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', function(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            // Create trail every few pixels of movement
+            if (Math.random() < 0.3) {
+                createMouseTrail(mouseX, mouseY);
+            }
+        });
+
+        function createMouseTrail(x, y) {
+            const trail = document.createElement('div');
+            trail.className = 'mouse-trail';
+            trail.style.left = (x - 4) + 'px';
+            trail.style.top = (y - 4) + 'px';
+            
+            document.body.appendChild(trail);
+            
+            setTimeout(() => {
+                trail.remove();
+            }, 1000);
+        }
+
+        // Floating particles
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            particle.style.animationDelay = Math.random() * 2 + 's';
+            
+            document.body.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 4000);
+        }
+
+        // Create particles periodically
+        setInterval(createParticle, 1000);
+
+        // Keyboard effects
+        searchInput.addEventListener('keydown', function(e) {
+            // Add a subtle shake effect for invalid characters
+            if (e.key === 'Escape') {
+                this.value = '';
+                typingIndicator.classList.remove('active');
+                this.blur();
+            }
+        });
+
+        // Enhanced focus effects
+        searchInput.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+        });
+
+        searchInput.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+
+        // Auto-focus on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                searchInput.focus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
