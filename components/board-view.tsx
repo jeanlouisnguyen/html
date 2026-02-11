@@ -86,12 +86,12 @@ function ToolbarChip({ icon: Icon, label, active, badge, onClick }: {
 }) {
   return (
     <button onClick={onClick}
-      className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors"
-      style={{ background: active ? "#1a1e2e" : "#f0efed", color: active ? "#fff" : "#555" }}>
-      <Icon className="h-3 w-3" />
+      className="flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
+      style={{ background: active ? "#1a1e2e" : "#f0efed", color: active ? "#fff" : "#555", boxShadow: active ? "0 2px 8px rgba(0,0,0,0.12)" : "none" }}>
+      <Icon className="h-3.5 w-3.5" />
       <span>{label}</span>
       {badge && (
-        <span className="ml-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold"
+        <span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold"
           style={{ background: active ? "rgba(255,255,255,0.25)" : "#1a1e2e", color: "#fff" }}>
           {badge}
         </span>
@@ -530,11 +530,12 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
       )}
 
       {/* CONTENT */}
-      {layout === "outline" ? renderOutline()
-       : layout === "kanban" ? renderKanban()
-       : layout === "eisenhower" ? renderEisenhower()
-       : (
-        <div className="dot-grid flex-1 overflow-y-auto px-1.5 pb-24 pt-1">
+      <div key={layout} className="animate-fade-in flex-1 overflow-hidden">
+        {layout === "outline" ? renderOutline()
+         : layout === "kanban" ? renderKanban()
+         : layout === "eisenhower" ? renderEisenhower()
+         : (
+          <div className="dot-grid h-full overflow-y-auto px-1.5 pb-24 pt-1">
           {pinned.length > 0 && (
             <div className="mb-2">
               <div className="flex items-center gap-1.5 px-1 pb-1">
@@ -560,16 +561,23 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
             </div>
           )}
           {totalCount === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <p className="text-xs" style={{ color: "#999" }}>No Things here yet</p>
-              <button onClick={onAdd} className="mt-3 flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold"
+            <div className="animate-fade-in flex flex-col items-center justify-center py-24 text-center">
+              <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "rgba(0,0,0,0.03)" }}>
+                <Plus className="h-7 w-7" style={{ color: "#bbb" }} />
+              </div>
+              <p className="mb-1 text-sm font-semibold" style={{ color: "#555" }}>Your board is empty</p>
+              <p className="mb-4 max-w-[200px] text-[11px] leading-relaxed" style={{ color: "#999" }}>
+                Create your first Thing to get started organizing your thoughts
+              </p>
+              <button onClick={onAdd} className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold shadow-sm transition-transform active:scale-95"
                 style={{ background: "#1a1e2e", color: "#fff" }}>
-                <Plus className="h-3.5 w-3.5" /> Add a Thing
+                <Plus className="h-4 w-4" /> Create a Thing
               </button>
             </div>
           )}
         </div>
-      )}
+        )}
+      </div>
 
       {/* FAB */}
       <button onClick={onAdd}

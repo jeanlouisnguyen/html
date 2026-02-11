@@ -40,13 +40,13 @@ function CircleSticker({ circle }: { circle: Thing["circle"] }) {
   const Icon = resolveIcon(iconName);
   return (
     <div
-      className="flex h-4 w-4 items-center justify-center rounded-full"
+      className="flex h-5 w-5 items-center justify-center rounded-full"
       style={{
         background: color,
         boxShadow: `0 1px 0 0 ${color}88, 0 1px 3px rgba(0,0,0,0.15)`,
       }}
     >
-      <Icon className="h-2 w-2 text-white" strokeWidth={3} />
+      <Icon className="h-2.5 w-2.5 text-white" strokeWidth={3} />
     </div>
   );
 }
@@ -60,17 +60,17 @@ function PrioritySticker({ priority }: { priority: Thing["priority"] }) {
     const sticker = getPrioritySticker(priority);
     if (!sticker.show) return null;
     return (
-      <div className={`flex h-3.5 w-3.5 items-center justify-center ${sticker.animated ? "animate-urgent-flash" : ""}`}
+      <div className={`flex h-4 w-4 items-center justify-center ${sticker.animated ? "animate-urgent-flash" : ""}`}
         style={{ background: sticker.bg, borderRadius: 2, boxShadow: "0 1px 2px rgba(0,0,0,0.15)" }}>
-        <span className="text-[7px] font-bold leading-none text-white">!</span>
+        <span className="text-[8px] font-bold leading-none text-white">!</span>
       </div>
     );
   }
   const PIcon = resolveIcon(custom.icon);
   return (
-    <div className={`flex h-3.5 w-3.5 items-center justify-center ${custom.animated ? "animate-urgent-flash" : ""}`}
+    <div className={`flex h-4 w-4 items-center justify-center ${custom.animated ? "animate-urgent-flash" : ""}`}
       style={{ background: custom.color, borderRadius: 2, boxShadow: "0 1px 2px rgba(0,0,0,0.15)" }}>
-      <PIcon className="h-2 w-2 text-white" strokeWidth={3} />
+      <PIcon className="h-2.5 w-2.5 text-white" strokeWidth={3} />
     </div>
   );
 }
@@ -162,7 +162,7 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
           border: "1px solid rgba(0,0,0,0.05)",
           boxShadow: "0 1px 3px rgba(0,0,0,0.07), 0 3px 8px rgba(0,0,0,0.05), 1px 3px 6px rgba(0,0,0,0.03)",
           marginTop: thing.pinned ? 6 : 3,
-          padding: "5px 5px 16px 5px",
+          padding: "7px 7px 22px 7px",
         }}
       >
         {/* TOP ROW: Circle (left) + Priority (right) */}
@@ -171,34 +171,34 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
           <PrioritySticker priority={thing.priority} />
         </div>
 
-        {/* CONTENT - ultra compact */}
-        <div className="mt-1">
+        {/* CONTENT - readable */}
+        <div className="mt-1.5">
           {isBirthday ? (
             <>
-              <p className="truncate text-[10px] font-bold leading-tight">{thing.birthdayPerson || thing.title}</p>
+              <p className="truncate text-xs font-bold leading-tight">{thing.birthdayPerson || thing.title}</p>
               {thing.eventDate && (
-                <p className="mt-0.5 text-sm font-black tabular-nums leading-none">
+                <p className="mt-0.5 text-base font-black tabular-nums leading-tight">
                   {new Date(thing.eventDate + "T00:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
                 </p>
               )}
             </>
           ) : isExpense ? (
             <>
-              <p className="truncate text-[10px] font-semibold leading-tight">{thing.title}</p>
+              <p className="truncate text-xs font-semibold leading-tight">{thing.title}</p>
               {thing.amount != null && (
-                <p className="mt-0.5 font-mono text-sm font-black tabular-nums leading-none">
+                <p className="mt-0.5 font-mono text-base font-black tabular-nums leading-tight">
                   ${thing.amount.toLocaleString("en-CA", { minimumFractionDigits: 2 })}
                 </p>
               )}
             </>
           ) : thing.type === "list" && thing.items ? (
             <>
-              <p className="truncate text-[10px] font-bold leading-tight">{thing.title}</p>
-              <ul className="mt-0.5 space-y-px">
+              <p className="truncate text-xs font-bold leading-tight">{thing.title}</p>
+              <ul className="mt-1 space-y-0.5">
                 {thing.items.slice(0, 3).map((item) => (
-                  <li key={item.id} className="flex items-center gap-1 text-[8px] leading-tight">
+                  <li key={item.id} className="flex items-center gap-1.5 text-[9px] leading-tight">
                     <span
-                      className="inline-block h-2 w-2 flex-shrink-0 rounded-sm border"
+                      className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-sm border"
                       style={{
                         borderColor: "rgba(0,0,0,0.15)",
                         background: item.checked ? "rgba(0,0,0,0.12)" : "transparent",
@@ -208,20 +208,20 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
                   </li>
                 ))}
                 {thing.items.length > 3 && (
-                  <li className="text-[7px] opacity-30">+{thing.items.length - 3}</li>
+                  <li className="text-[8px] opacity-30">+{thing.items.length - 3}</li>
                 )}
               </ul>
             </>
           ) : thing.type === "password" ? (
             <>
-              <p className="truncate text-[10px] font-bold leading-tight">{thing.title}</p>
-              <p className="mt-0.5 font-mono text-[8px] tracking-widest opacity-25">{"*".repeat(8)}</p>
+              <p className="truncate text-xs font-bold leading-tight">{thing.title}</p>
+              <p className="mt-0.5 font-mono text-[9px] tracking-widest opacity-25">{"*".repeat(8)}</p>
             </>
           ) : (
             <>
-              <p className="truncate text-[10px] font-bold leading-tight">{thing.title}</p>
+              <p className="truncate text-xs font-bold leading-tight">{thing.title}</p>
               {thing.description && (
-                <p className="mt-0.5 line-clamp-2 text-[8px] leading-tight opacity-50">{thing.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-[9px] leading-snug opacity-50">{thing.description}</p>
               )}
             </>
           )}
@@ -229,26 +229,26 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
 
         {/* Due/event date - single line */}
         {(thing.dueDate || thing.eventDate) && !isBirthday && (
-          <p className="mt-1 text-[7px] tabular-nums opacity-35">
+          <p className="mt-1.5 text-[8px] tabular-nums opacity-35">
             {new Date((thing.eventDate || thing.dueDate)! + "T00:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
           </p>
         )}
 
         {/* Completed badge */}
         {thing.completed && (
-          <div className="absolute bottom-1 left-1.5">
-            <Check className="h-2.5 w-2.5 opacity-35" />
+          <div className="absolute bottom-1.5 left-2">
+            <Check className="h-3 w-3 opacity-35" />
           </div>
         )}
 
         {/* WATERMARK ARTWORK (duotone, lower-right, behind content) */}
         <div className="pointer-events-none absolute -bottom-2 -right-2 opacity-[0.045]">
-          <TypeIcon className="h-14 w-14" strokeWidth={1} />
+          <TypeIcon className="h-16 w-16" strokeWidth={1} />
         </div>
 
         {/* TYPE ICON (lower-right) */}
-        <div className="absolute bottom-1 right-1.5">
-          <TypeIcon className="h-3 w-3 opacity-20" />
+        <div className="absolute bottom-1.5 right-2">
+          <TypeIcon className="h-3.5 w-3.5 opacity-20" />
         </div>
 
         {/* EDGE EFFECTS */}
