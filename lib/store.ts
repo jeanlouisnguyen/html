@@ -1,0 +1,142 @@
+'use client';
+
+import { useSyncExternalStore, useCallback } from "react";
+import type { Thing } from "./types";
+
+function generateId() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+const today = new Date();
+const fmt = (d: Date) => d.toISOString().split("T")[0];
+const addDays = (d: Date, n: number) => {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+};
+
+const SEED_THINGS: Thing[] = [
+  {
+    id: generateId(), title: "Quarterly report", type: "task", circle: "work",
+    priority: "high", pinned: true, completed: false, tags: ["deadline"],
+    createdAt: fmt(addDays(today, -5)), dueDate: fmt(today),
+    description: "Prepare Q1 results for management review"
+  },
+  {
+    id: generateId(), title: "Grocery list", type: "list", circle: "home",
+    priority: "medium", pinned: false, completed: false, tags: ["shopping"],
+    createdAt: fmt(addDays(today, -1)),
+    items: [
+      { id: "a", text: "Milk", checked: false },
+      { id: "b", text: "Eggs", checked: true },
+      { id: "c", text: "Bread", checked: false },
+      { id: "d", text: "Avocados", checked: false },
+    ]
+  },
+  {
+    id: generateId(), title: "App design ideas", type: "note", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["creative"],
+    createdAt: fmt(addDays(today, -3)),
+    description: "Explore minimalist card layouts with pastel gradients. Consider motion design for transitions."
+  },
+  {
+    id: generateId(), title: "Team standup", type: "event", circle: "work",
+    priority: "medium", pinned: false, completed: false, tags: ["meeting"],
+    createdAt: fmt(addDays(today, -7)), eventDate: fmt(addDays(today, 3)),
+    description: "Daily sync with engineering team at 9:30 AM"
+  },
+  {
+    id: generateId(), title: "Netflix", type: "subscription", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["entertainment"],
+    createdAt: fmt(addDays(today, -30)), dueDate: fmt(addDays(today, 5)),
+    amount: 22.99, vendor: "Netflix", recurring: "monthly"
+  },
+  {
+    id: generateId(), title: "Rent payment", type: "expense", circle: "home",
+    priority: "urgent", pinned: true, completed: false, tags: ["housing"],
+    createdAt: fmt(addDays(today, -2)), dueDate: fmt(addDays(today, 1)),
+    amount: 1850, vendor: "Landlord"
+  },
+  {
+    id: generateId(), title: "Mom's birthday", type: "birthday", circle: "family",
+    priority: "high", pinned: true, completed: false, tags: ["family"],
+    createdAt: fmt(addDays(today, -60)), eventDate: fmt(addDays(today, 12)),
+    birthdayPerson: "Mom"
+  },
+  {
+    id: generateId(), title: "Take medication", type: "reminder", circle: "health",
+    priority: "high", pinned: false, completed: false, tags: ["health"],
+    createdAt: fmt(addDays(today, -10)), dueDate: fmt(today),
+    recurring: "daily", description: "Blood pressure meds after breakfast"
+  },
+  {
+    id: generateId(), title: "Design inspiration", type: "bookmark", circle: "work",
+    priority: "low", pinned: false, completed: false, tags: ["design"],
+    createdAt: fmt(addDays(today, -4)),
+    url: "https://dribbble.com", description: "Great mobile patterns"
+  },
+  {
+    id: generateId(), title: "AWS Console", type: "password", circle: "work",
+    priority: "medium", pinned: false, completed: false, tags: ["dev"],
+    createdAt: fmt(addDays(today, -20)),
+    username: "admin@company.com", password: "s3cur3P@ss!"
+  },
+  {
+    id: generateId(), title: "Dentist appointment", type: "event", circle: "health",
+    priority: "medium", pinned: false, completed: true, tags: ["health"],
+    createdAt: fmt(addDays(today, -14)), eventDate: fmt(addDays(today, -2)),
+    description: "Cleaning and checkup at Dr. Smith"
+  },
+  {
+    id: generateId(), title: "Buy birthday gift", type: "task", circle: "family",
+    priority: "medium", pinned: false, completed: true, tags: ["shopping"],
+    createdAt: fmt(addDays(today, -8)), dueDate: fmt(addDays(today, -1)),
+    description: "Get a nice scarf for Mom"
+  },
+];
+
+type Listener = () => void;
+let things: Thing[] = [...SEED_THINGS];
+let listeners: Set<Listener> = new Set();
+
+function emit() {
+  for (const l of listeners) l();
+}
+
+function getSnapshot() {
+  return things;
+}
+
+function subscribe(listener: Listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function useThings() {
+  const data = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const addThing = useCallback((t: Omit<Thing, "id" | "createdAt">) => {
+    things = [{ ...t, id: generateId(), createdAt: fmt(new Date()) }, ...things];
+    emit();
+  }, []);
+
+  const updateThing = useCallback((id: string, updates: Partial<Thing>) => {
+    things = things.map((t) => (t.id === id ? { ...t, ...updates } : t));
+    emit();
+  }, []);
+
+  const deleteThing = useCallback((id: string) => {
+    things = things.filter((t) => t.id !== id);
+    emit();
+  }, []);
+
+  const reorder = useCallback((fromIdx: number, toIdx: number) => {
+    const arr = [...things];
+    const [moved] = arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, moved);
+    things = arr;
+    emit();
+  }, []);
+
+  return { things: data, addThing, updateThing, deleteThing, reorder };
+}
