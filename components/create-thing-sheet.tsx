@@ -80,26 +80,34 @@ export default function CreateThingSheet({ onSave, onClose, defaultType, prefill
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "#ffffff" }}>
-      {/* Header -- stripped down: Cancel + label + Save */}
-      <header className="flex h-12 flex-shrink-0 items-center justify-between border-b px-4" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-        <button onClick={onClose} className="text-sm font-semibold" style={{ color: "#888" }}>Cancel</button>
-        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#aaa" }}>New Thing</span>
-        <button onClick={handleSave} disabled={isTitleMissing}
-          className="rounded px-3 py-1 text-sm font-bold transition-opacity disabled:opacity-30"
-          style={{ background: "#1a1e2e", color: "#fff" }}>
-          Save
-        </button>
-      </header>
+    <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "rgba(0,0,0,0.35)" }}>
+      {/* Tap backdrop to dismiss */}
+      <div className="flex-1" onClick={onClose} />
+      <div className="animate-sheet-up flex flex-col overflow-hidden rounded-t-2xl" style={{ background: "#ffffff", maxHeight: "92dvh" }}>
+        {/* Handle */}
+        <div className="flex justify-center pt-2.5 pb-1">
+          <div className="h-1 w-10 rounded-full" style={{ background: "#e0e0e0" }} />
+        </div>
+
+        {/* Header */}
+        <header className="flex h-12 flex-shrink-0 items-center justify-between border-b px-4" style={{ borderColor: "rgba(0,0,0,0.07)" }}>
+          <button onClick={onClose} className="min-w-[44px] py-2 text-sm font-semibold" style={{ color: "#888" }}>Cancel</button>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#aaa" }}>New Thing</span>
+          <button onClick={handleSave} disabled={isTitleMissing}
+            className="min-w-[44px] rounded-lg px-3 py-2 text-sm font-bold transition-opacity disabled:opacity-30"
+            style={{ background: "#1a1e2e", color: "#fff" }}>
+            Save
+          </button>
+        </header>
 
       <div className="flex-1 overflow-y-auto p-4" onClick={() => setActivePopup(null)}>
         {/* ---- STICKY NOTE CARD FORM ---- */}
         <div className="relative overflow-visible" onClick={(e) => e.stopPropagation()}
           style={{
-            background: bg, color: textColor, borderRadius: 4,
+            background: bg, color: textColor, borderRadius: 6,
             border: "1px solid rgba(0,0,0,0.06)",
-            boxShadow: "2px 4px 16px rgba(0,0,0,0.10), 4px 6px 0 rgba(0,0,0,0.04)",
-            padding: "14px 14px 48px 14px",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08), 4px 6px 0 rgba(0,0,0,0.03)",
+            padding: "18px 16px 52px 16px",
           }}>
 
           {/* PIN (top center) -- real pin or ghost target */}
@@ -145,7 +153,7 @@ export default function CreateThingSheet({ onSave, onClose, defaultType, prefill
                 )}
               </button>
               {activePopup === "circle" && (
-                <div className="absolute left-0 top-10 z-30 flex gap-1.5 rounded-lg border bg-white p-2 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
+                <div className="animate-scale-in absolute left-0 top-10 z-30 flex gap-1.5 rounded-xl border bg-white p-2.5 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
                   <button onClick={() => { setCircle(undefined); setActivePopup(null); }}
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-[9px] font-bold" style={{ color: "#aaa" }}>--</button>
                   {allCircles.map((c) => {
@@ -171,7 +179,7 @@ export default function CreateThingSheet({ onSave, onClose, defaultType, prefill
                 </span>
               </button>
               {activePopup === "priority" && (
-                <div className="absolute right-0 top-9 z-30 flex gap-1.5 rounded-lg border bg-white p-2 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
+                <div className="animate-scale-in absolute right-0 top-9 z-30 flex gap-1.5 rounded-xl border bg-white p-2.5 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
                   {allPriorities.map((p) => {
                     const s = getPrioritySticker(p);
                     return (
@@ -298,7 +306,8 @@ export default function CreateThingSheet({ onSave, onClose, defaultType, prefill
               <span className="text-[8px] font-bold uppercase tracking-wider opacity-30">{type}</span>
             </button>
             {activePopup === "type" && (
-              <div className="absolute bottom-8 right-0 z-30 rounded-lg border bg-white p-2.5 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.1)", width: 200 }}>
+              <div className="animate-scale-in absolute bottom-8 right-0 z-30 rounded-xl border bg-white p-3 shadow-xl"
+                style={{ borderColor: "rgba(0,0,0,0.08)", width: 208 }}>
                 <p className="mb-2 text-[9px] font-black uppercase tracking-wider" style={{ color: "#888" }}>Change type</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {allTypes.map((t) => {

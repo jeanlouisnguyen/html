@@ -41,7 +41,7 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
   const isBirthday = draft.type === "birthday";
 
   const patch = (p: Partial<Thing>) => setDraft((d) => ({ ...d, ...p }));
-  const handleSave = () => { onSave(draft); onClose(); };
+  const handleClose = () => { onSave(draft); onClose(); };
 
   const togglePopup = (p: "circle" | "priority" | "type") =>
     setActivePopup((cur) => (cur === p ? null : p));
@@ -51,33 +51,35 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
   const allPriorities: Priority[] = ["low", "medium", "high", "urgent"];
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "hsl(var(--background))" }}>
-      {/* Header -- simplified: Back + Delete + Save */}
-      <header className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border px-4">
-        <button onClick={onClose} className="flex items-center gap-1 text-sm text-muted-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-        <div className="flex items-center gap-2">
-          <button onClick={onDelete} className="p-2 text-destructive">
+    <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "rgba(0,0,0,0.35)" }}>
+      <div className="flex-1" onClick={handleClose} />
+      <div className="animate-sheet-up flex flex-col overflow-hidden rounded-t-2xl" style={{ background: "#ffffff", maxHeight: "96dvh" }}>
+        {/* Handle */}
+        <div className="flex justify-center pt-2.5 pb-1">
+          <div className="h-1 w-10 rounded-full" style={{ background: "#e0e0e0" }} />
+        </div>
+
+        {/* Header -- Back (auto-saves) + delete */}
+        <header className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border px-4">
+          <button onClick={handleClose} className="flex min-w-[44px] items-center gap-1 py-2 text-sm font-semibold text-muted-foreground">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#aaa" }}>Edit</span>
+          <button onClick={onDelete}
+            className="flex min-w-[44px] items-center justify-end py-2 text-destructive">
             <Trash2 className="h-4 w-4" />
           </button>
-          <button onClick={handleSave}
-            className="rounded px-3 py-1 text-sm font-bold"
-            style={{ background: "#1a1e2e", color: "#fff" }}>
-            Save
-          </button>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex-1 overflow-y-auto p-4" onClick={() => setActivePopup(null)}>
-        {/* ---- EXPANDED STICKY NOTE CARD ---- */}
-        <div className="relative overflow-visible" onClick={(e) => e.stopPropagation()}
-          style={{
-            background: bg, color: textColor, borderRadius: 4,
-            border: "1px solid rgba(0,0,0,0.06)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05)",
-            padding: "14px 14px 48px 14px",
-          }}>
+        <div className="flex-1 overflow-y-auto p-4" onClick={() => setActivePopup(null)}>
+          {/* ---- EXPANDED STICKY NOTE CARD ---- */}
+          <div className="relative overflow-visible" onClick={(e) => e.stopPropagation()}
+            style={{
+              background: bg, color: textColor, borderRadius: 6,
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)",
+              padding: "18px 16px 56px 16px",
+            }}>
 
           {/* PIN (top center) -- real pin if pinned, ghost dashed circle if not */}
           <div className="absolute left-1/2 -translate-x-1/2" style={{ top: -6 }}>
@@ -122,7 +124,7 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
                 )}
               </button>
               {activePopup === "circle" && (
-                <div className="absolute left-0 top-11 z-30 flex gap-1.5 rounded-lg border bg-white p-2 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
+                <div className="animate-scale-in absolute left-0 top-11 z-30 flex gap-1.5 rounded-xl border bg-white p-2.5 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
                   <button onClick={() => { patch({ circle: undefined }); setActivePopup(null); }}
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-[9px] font-bold" style={{ color: "#aaa" }}>--</button>
                   {allCircles.map((c) => {
@@ -148,7 +150,7 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
                 </span>
               </button>
               {activePopup === "priority" && (
-                <div className="absolute right-0 top-10 z-30 flex gap-1.5 rounded-lg border bg-white p-2 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
+                <div className="animate-scale-in absolute right-0 top-10 z-30 flex gap-1.5 rounded-xl border bg-white p-2.5 shadow-xl" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
                   {allPriorities.map((p) => {
                     const s = getPrioritySticker(p);
                     return (
@@ -344,8 +346,8 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
               <span className="text-[8px] font-bold uppercase tracking-wider opacity-30">{draft.type}</span>
             </button>
             {activePopup === "type" && (
-              <div className="absolute bottom-8 right-0 z-30 rounded-lg border bg-white p-2.5 shadow-xl"
-                style={{ borderColor: "rgba(0,0,0,0.1)", width: 200 }}>
+              <div className="animate-scale-in absolute bottom-8 right-0 z-30 rounded-xl border bg-white p-3 shadow-xl"
+                style={{ borderColor: "rgba(0,0,0,0.08)", width: 208 }}>
                 <p className="mb-2 text-[9px] font-black uppercase tracking-wider" style={{ color: "#888" }}>Change type</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {allTypes.map((t) => {
@@ -363,6 +365,7 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>

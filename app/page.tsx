@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { useThings } from "@/lib/store";
 import type { Thing, ThingType } from "@/lib/types";
 import LoadingScreen from "@/components/loading-screen";
@@ -10,7 +10,7 @@ import CalendarView from "@/components/calendar-view";
 import ThingEditView from "@/components/thing-edit-view";
 import CreateThingSheet from "@/components/create-thing-sheet";
 import SettingsView from "@/components/settings-view";
-import { Plus } from "lucide-react"; // Import Plus component
+import { Plus } from "lucide-react";
 
 /* Map active tab to default Thing type */
 function tabToDefaultType(tab: Tab): ThingType {
@@ -31,10 +31,10 @@ export default function Page() {
   const [editingThing, setEditingThing] = useState<Thing | null>(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  /* Track the date the user was viewing in calendar daily view */
   const [calendarDailyDate, setCalendarDailyDate] = useState<string | undefined>();
   const [createStartTime, setCreateStartTime] = useState<string | undefined>();
   const [createPrefillDate, setCreatePrefillDate] = useState<string | undefined>();
+  const [headerSlot, setHeaderSlot] = useState<ReactNode>(null);
 
   const handleLoadDone = useCallback(() => setLoading(false), []);
 
@@ -59,6 +59,11 @@ export default function Page() {
     if (t) updateThing(id, { completed: !t.completed });
   };
 
+  const handleTabChange = useCallback((t: Tab) => {
+    setTab(t);
+    if (t === "calendar") setHeaderSlot(null);
+  }, []);
+
   if (loading) {
     return <LoadingScreen onDone={handleLoadDone} />;
   }
@@ -68,9 +73,9 @@ export default function Page() {
 
   return (
     <>
-      <AppShell activeTab={tab} onTabChange={setTab} onSettingsOpen={() => setSettingsOpen(true)}>
+      <AppShell activeTab={tab} onTabChange={handleTabChange} onSettingsOpen={() => setSettingsOpen(true)} headerSlot={headerSlot}>
         {tab === "board" && (
-          <BoardView things={things} onTap={handleTap} onAdd={handleAdd} />
+          <BoardView things={things} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "calendar" && (
           <CalendarView
@@ -82,16 +87,16 @@ export default function Page() {
           />
         )}
         {tab === "tasks" && (
-          <BoardView things={tasks} onTap={handleTap} onAdd={handleAdd} />
+          <BoardView things={tasks} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "notes" && (
-          <BoardView things={notes} onTap={handleTap} onAdd={handleAdd} />
+          <BoardView things={notes} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "budget" && (
-          <BoardView things={budgetTypes} onTap={handleTap} onAdd={handleAdd} />
+          <BoardView things={budgetTypes} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "reminders" && (
-          <BoardView things={reminders} onTap={handleTap} onAdd={handleAdd} />
+          <BoardView things={reminders} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
         )}
 
         {/* Global FAB -- visible on Calendar tab (BoardView has its own) */}

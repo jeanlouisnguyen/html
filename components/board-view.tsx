@@ -1,8 +1,7 @@
 "use client";
 
-import React from "react"
-
-import { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { Thing, ThingType, Circle, Priority } from "@/lib/types";
 import { TYPE_ICONS, CIRCLE_ICONS, getCardBg, getCardTextColor } from "@/lib/card-helpers";
 import ThingCard from "./thing-card";
@@ -51,12 +50,6 @@ function isInProgress(t: Thing): boolean {
   return false;
 }
 
-function tiltFor(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
-  return -2.5 + ((Math.abs(h) % 1000) / 1000) * 5;
-}
-
 function detectViewMode(things: Thing[]): ViewMode {
   if (things.length === 0) return "board";
   const types = new Set(things.map((t) => t.type));
@@ -69,7 +62,6 @@ function detectViewMode(things: Thing[]): ViewMode {
   return "board";
 }
 
-/* ---- Bullet signifier for outline ---- */
 function outlineBullet(t: Thing): { symbol: string; style: string } {
   if (t.completed) return { symbol: "\u2611", style: "line-through opacity-40" };
   if (t.priority === "urgent" || t.priority === "high") return { symbol: "\u25CF", style: "text-red-500 font-bold" };
@@ -81,18 +73,29 @@ function outlineBullet(t: Thing): { symbol: string; style: string } {
   return { symbol: "\u2022", style: "" };
 }
 
-function ToolbarChip({ icon: Icon, label, active, badge, onClick }: {
-  icon: typeof ArrowUpDown; label: string; active: boolean; badge?: string; onClick: () => void;
+/* ---- Icon-only toolbar button ---- */
+function IconBtn({
+  icon: Icon, active, badge, title, onClick,
+}: {
+  icon: typeof ArrowUpDown; active: boolean; badge?: number; title: string; onClick: () => void;
 }) {
   return (
-    <button onClick={onClick}
-      className="flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
-      style={{ background: active ? "#1a1e2e" : "#f0efed", color: active ? "#fff" : "#555", boxShadow: active ? "0 2px 8px rgba(0,0,0,0.12)" : "none" }}>
-      <Icon className="h-3.5 w-3.5" />
-      <span>{label}</span>
-      {badge && (
-        <span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold"
-          style={{ background: active ? "rgba(255,255,255,0.25)" : "#1a1e2e", color: "#fff" }}>
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="relative flex h-8 w-8 items-center justify-center rounded-md transition-all active:scale-90"
+      style={{
+        background: active ? "#1a1e2e" : "transparent",
+        color: active ? "#fff" : "#666",
+      }}
+    >
+      <Icon className="h-4 w-4" />
+      {badge != null && badge > 0 && (
+        <span
+          className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold"
+          style={{ background: "#ef4444", color: "#fff" }}
+        >
           {badge}
         </span>
       )}
@@ -100,21 +103,29 @@ function ToolbarChip({ icon: Icon, label, active, badge, onClick }: {
   );
 }
 
+/* ---- Dropdown panel (fixed under header) ---- */
 function DropdownPanel({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute left-2 right-2 z-50 mt-1 rounded-lg p-2 shadow-lg"
-        style={{ background: "#fff", border: "1px solid #e5e5e5" }}>
+      <div
+        className="fixed left-2 right-2 top-[49px] z-50 animate-slide-down rounded-xl p-3 shadow-xl"
+        style={{ background: "#fff", border: "1px solid #e5e5e5" }}
+      >
         {children}
       </div>
     </>
   );
 }
 
-interface BoardViewProps { things: Thing[]; onTap: (thing: Thing) => void; onAdd: () => void; }
+interface BoardViewProps {
+  things: Thing[];
+  onTap: (thing: Thing) => void;
+  onAdd: () => void;
+  onHeaderSlotChange?: (slot: React.ReactNode) => void;
+}
 
-export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
+export default function BoardView({ things, onTap, onAdd, onHeaderSlotChange }: BoardViewProps) {
   const [typeFilter, setTypeFilter] = useState<ThingType | null>(null);
   const [circleFilter, setCircleFilter] = useState<Circle | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
@@ -129,8 +140,11 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
   const activeFilterCount = useMemo(() => {
     let c = 0;
-    if (typeFilter) c++; if (circleFilter) c++; if (priorityFilter) c++;
-    if (dateFilter) c++; if (statusFilter) c++;
+    if (typeFilter) c++;
+    if (circleFilter) c++;
+    if (priorityFilter) c++;
+    if (dateFilter) c++;
+    if (statusFilter) c++;
     return c;
   }, [typeFilter, circleFilter, priorityFilter, dateFilter, statusFilter]);
 
@@ -148,7 +162,8 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     if (priorityFilter) list = list.filter((t) => t.priority === priorityFilter);
     if (dateFilter) {
       list = list.filter((t) => {
-        const d = t.dueDate || t.eventDate; if (!d) return false;
+        const d = t.dueDate || t.eventDate;
+        if (!d) return false;
         switch (dateFilter) {
           case "today": return d === todayStr;
           case "week": return d >= todayStr && d <= weekStr;
@@ -163,7 +178,7 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
         switch (statusFilter) {
           case "done": return t.completed;
           case "active": return !t.completed;
-          case "pending": return !t.completed && t.dueDate;
+          case "pending": return !t.completed && !!t.dueDate;
           default: return true;
         }
       });
@@ -182,7 +197,6 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
   const PRIORITY_COLORS: Record<Priority, string> = { urgent: "#ef4444", high: "#f97316", medium: "#eab308", low: "#9ca3af" };
   const totalCount = pinned.length + unpinned.length;
 
-  /* Available layouts per tab */
   const layoutOptions: { id: LayoutStyle; icon: typeof LayoutGrid; label: string }[] = useMemo(() => {
     const base: { id: LayoutStyle; icon: typeof LayoutGrid; label: string }[] = [
       { id: "grid", icon: LayoutGrid, label: "Grid" },
@@ -204,13 +218,67 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     }
   }, [viewMode]);
 
-  /* ---- Render helpers ---- */
+  const CurrentLayoutIcon = layoutOptions.find((o) => o.id === layout)?.icon ?? LayoutGrid;
+
+  /* Push icon buttons into AppShell header via callback */
+  useEffect(() => {
+    if (!onHeaderSlotChange) return;
+    const clearAll = () => {
+      setTypeFilter(null);
+      setCircleFilter(null);
+      setPriorityFilter(null);
+      setDateFilter(null);
+      setStatusFilter(null);
+    };
+
+    onHeaderSlotChange(
+      <div className="flex items-center gap-0.5">
+        {/* View */}
+        <IconBtn icon={CurrentLayoutIcon} active={openPanel === "view"} title="Change layout"
+          onClick={() => toggle("view")} />
+        {/* Sort */}
+        <IconBtn icon={ArrowUpDown} active={openPanel === "sort" || sort !== "custom"} title="Sort"
+          onClick={() => toggle("sort")} />
+        {/* Circle */}
+        <IconBtn icon={CircleDot} active={openPanel === "circles" || !!circleFilter} badge={circleFilter ? 1 : undefined}
+          title="Filter by circle" onClick={() => toggle("circles")} />
+        {/* Type (board only) */}
+        {viewMode === "board" && (
+          <IconBtn icon={Layers} active={openPanel === "types" || !!typeFilter} badge={typeFilter ? 1 : undefined}
+            title="Filter by type" onClick={() => toggle("types")} />
+        )}
+        {/* Date */}
+        <IconBtn icon={CalendarDays} active={openPanel === "date" || !!dateFilter} badge={dateFilter ? 1 : undefined}
+          title="Filter by date" onClick={() => toggle("date")} />
+        {/* Status */}
+        <IconBtn icon={Activity} active={openPanel === "status" || !!statusFilter} badge={statusFilter ? 1 : undefined}
+          title="Filter by status" onClick={() => toggle("status")} />
+        {/* Priority */}
+        <IconBtn icon={AlertTriangle} active={openPanel === "priority" || !!priorityFilter} badge={priorityFilter ? 1 : undefined}
+          title="Filter by priority" onClick={() => toggle("priority")} />
+        {/* Clear filters */}
+        {activeFilterCount > 0 && (
+          <button onClick={clearAll}
+            className="flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-bold active:scale-95"
+            style={{ background: "#fee2e2", color: "#ef4444" }}>
+            <X className="h-3 w-3" />{activeFilterCount}
+          </button>
+        )}
+      </div>
+    );
+  }, [onHeaderSlotChange, openPanel, sort, circleFilter, typeFilter, dateFilter, statusFilter, priorityFilter, activeFilterCount, viewMode, CurrentLayoutIcon, layout]);
+
+  /* Cleanup on unmount */
+  useEffect(() => {
+    return () => { if (onHeaderSlotChange) onHeaderSlotChange(null); };
+  }, [onHeaderSlotChange]);
+
   const renderCards = (items: Thing[]) => {
     if (layout === "list") {
       return (
         <div className="flex flex-col gap-0.5">
           {items.map((thing) => (
-            <div key={thing.id} className="relative" style={{ zIndex: 1 }}>
+            <div key={thing.id}>
               <ThingCard thing={thing} onTap={() => onTap(thing)} />
             </div>
           ))}
@@ -220,12 +288,11 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     return (
       <div className="columns-3 gap-1.5">
         {items.map((thing, idx) => (
-          <div key={thing.id} className="relative break-inside-avoid"
-            style={{
-              marginBottom: 2, marginTop: idx >= 3 ? -6 : 0,
-              zIndex: idx, transform: `rotate(${tiltFor(thing.id)}deg)`,
-              transformOrigin: "center center", transition: "transform 0.15s ease",
-            }}>
+          <div
+            key={thing.id}
+            className="relative break-inside-avoid"
+            style={{ marginBottom: 2, marginTop: idx >= 3 ? -6 : 0, zIndex: idx }}
+          >
             <ThingCard thing={thing} onTap={() => onTap(thing)} />
           </div>
         ))}
@@ -233,22 +300,20 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     );
   };
 
-  /* ---- OUTLINE VIEW ---- */
   const renderOutline = () => {
     const groups: Record<string, Thing[]> = {};
     for (const t of allFiltered) {
-      const key = t.type;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(t);
+      if (!groups[t.type]) groups[t.type] = [];
+      groups[t.type].push(t);
     }
     return (
-      <div className="space-y-3 px-2 pb-24 pt-2" style={{ background: "#fff" }}>
+      <div className="space-y-3 overflow-y-auto px-2 pb-24 pt-2" style={{ background: "#fff", height: "100%" }}>
         {Object.entries(groups).map(([type, items]) => {
           const Icon = TYPE_ICONS[type as ThingType];
           const bg = getCardBg({ type } as Thing);
           return (
             <div key={type}>
-              <div className="flex items-center gap-1.5 border-b pb-1 mb-1" style={{ borderColor: bg }}>
+              <div className="mb-1 flex items-center gap-1.5 border-b pb-1" style={{ borderColor: bg }}>
                 <Icon className="h-3 w-3" style={{ color: getCardTextColor(bg) }} />
                 <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#999" }}>
                   {type}s ({items.length})
@@ -261,21 +326,16 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
                   return (
                     <li key={t.id}>
                       <button onClick={() => onTap(t)}
-                        className="flex w-full items-baseline gap-1.5 rounded px-1.5 py-0.5 text-left transition-colors hover:bg-gray-50">
+                        className="flex w-full items-baseline gap-1.5 rounded px-1.5 py-0.5 text-left transition-colors hover:bg-gray-50 active:scale-[0.99]">
                         <span className={`flex-shrink-0 text-[11px] leading-none ${b.style}`}>{b.symbol}</span>
-                        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full mt-0.5" style={{ background: cardBg, border: "1px solid rgba(0,0,0,0.08)" }} />
-                        <span className={`flex-1 text-[11px] leading-snug ${b.style}`}>
-                          {t.title}
-                        </span>
+                        <span className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: cardBg, border: "1px solid rgba(0,0,0,0.08)" }} />
+                        <span className={`flex-1 text-[11px] leading-snug ${b.style}`}>{t.title}</span>
                         {t.priority === "urgent" && <span className="text-[8px] font-bold text-red-500">URGENT</span>}
                         {t.priority === "high" && <span className="text-[8px] font-bold text-orange-500">HIGH</span>}
                         {(t.dueDate || t.eventDate) && (
                           <span className="flex-shrink-0 text-[8px] tabular-nums" style={{ color: "#aaa" }}>
                             {new Date((t.dueDate || t.eventDate)! + "T00:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
                           </span>
-                        )}
-                        {t.circle && (
-                          <span className="flex-shrink-0 text-[8px] font-semibold" style={{ color: "#bbb" }}>@{t.circle}</span>
                         )}
                       </button>
                     </li>
@@ -289,18 +349,16 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     );
   };
 
-  /* ---- KANBAN VIEW ---- */
   const renderKanban = () => (
-    <div className="flex h-full gap-1.5 overflow-x-auto px-1.5 pb-24 pt-1" style={{ background: "#fff" }}>
+    <div className="flex h-full gap-1.5 overflow-x-auto px-1.5 pb-24 pt-1" style={{ background: "#faf9f7" }}>
       {KANBAN_COLS.map((col) => {
         const items = allFiltered.filter(col.match);
         return (
-          <div key={col.key} className="flex min-w-[140px] flex-1 flex-col rounded-lg"
-            style={{ background: "#f8f7f5" }}>
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#888" }}>{col.label}</span>
-              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold"
-                style={{ background: "#e5e5e3", color: "#666" }}>{items.length}</span>
+          <div key={col.key} className="flex min-w-[140px] flex-1 flex-col rounded-xl" style={{ background: "#fff", border: "1px solid #e8e8e6" }}>
+            <div className="flex items-center justify-between px-2.5 py-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#888" }}>{col.label}</span>
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold"
+                style={{ background: "#f0efed", color: "#666" }}>{items.length}</span>
             </div>
             <div className="flex-1 space-y-1 overflow-y-auto px-1 pb-2">
               {items.map((thing) => (
@@ -309,7 +367,7 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
                 </div>
               ))}
               {items.length === 0 && (
-                <p className="py-6 text-center text-[9px]" style={{ color: "#ccc" }}>Empty</p>
+                <p className="py-8 text-center text-[10px]" style={{ color: "#ccc" }}>Empty</p>
               )}
             </div>
           </div>
@@ -318,11 +376,9 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     </div>
   );
 
-  /* ---- EISENHOWER MATRIX VIEW ---- */
   const renderEisenhower = () => {
     const quadrantItems = (key: string) => allFiltered.filter((t) => {
       if (t.eisenhower) return t.eisenhower === key;
-      // Auto-categorize by priority if no explicit eisenhower set
       switch (key) {
         case "do": return t.priority === "urgent";
         case "schedule": return t.priority === "high";
@@ -332,33 +388,33 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
       }
     });
     return (
-      <div className="grid h-full grid-cols-2 grid-rows-2 gap-1 px-1.5 pb-24 pt-1" style={{ background: "#fff" }}>
+      <div className="grid h-full grid-cols-2 grid-rows-2 gap-1.5 px-1.5 pb-24 pt-1" style={{ background: "#faf9f7" }}>
         {EISENHOWER_QUADRANTS.map((q) => {
           const items = quadrantItems(q.key);
           return (
-            <div key={q.key} className="flex flex-col overflow-hidden rounded-lg"
+            <div key={q.key} className="flex flex-col overflow-hidden rounded-xl"
               style={{ background: q.color, border: `1.5px solid ${q.border}` }}>
-              <div className="px-2 pt-1.5 pb-0.5">
-                <p className="text-[10px] font-extrabold uppercase tracking-wide" style={{ color: "#333" }}>{q.label}</p>
-                <p className="text-[7px]" style={{ color: "#888" }}>{q.sub}</p>
+              <div className="px-2.5 pb-0.5 pt-2">
+                <p className="text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#333" }}>{q.label}</p>
+                <p className="text-[8px]" style={{ color: "#888" }}>{q.sub}</p>
               </div>
-              <div className="flex-1 space-y-0.5 overflow-y-auto px-1 pb-1">
+              <div className="flex-1 space-y-0.5 overflow-y-auto px-1.5 pb-1.5">
                 {items.map((thing) => (
                   <button key={thing.id} onClick={() => onTap(thing)}
-                    className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left transition-colors"
-                    style={{ background: "rgba(255,255,255,0.6)" }}>
-                    <span className="flex h-3 w-3 flex-shrink-0 items-center justify-center">
+                    className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-left transition-colors active:scale-[0.98]"
+                    style={{ background: "rgba(255,255,255,0.7)" }}>
+                    <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center">
                       {thing.completed
-                        ? <CheckSquare className="h-2.5 w-2.5 text-green-500" />
-                        : <Square className="h-2.5 w-2.5 opacity-30" />}
+                        ? <CheckSquare className="h-3 w-3 text-green-500" />
+                        : <Square className="h-3 w-3 opacity-30" />}
                     </span>
-                    <span className={`flex-1 truncate text-[9px] font-medium ${thing.completed ? "line-through opacity-40" : ""}`}>
+                    <span className={`flex-1 truncate text-[10px] font-medium ${thing.completed ? "line-through opacity-40" : ""}`}>
                       {thing.title}
                     </span>
                   </button>
                 ))}
                 {items.length === 0 && (
-                  <p className="py-4 text-center text-[8px]" style={{ color: "#bbb" }}>Empty</p>
+                  <p className="py-6 text-center text-[9px]" style={{ color: "#bbb" }}>Empty</p>
                 )}
               </div>
             </div>
@@ -368,59 +424,19 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
     );
   };
 
-  const showGridOrList = layout === "grid" || layout === "list";
-
   return (
-    <div className="relative flex h-full flex-col" style={{ background: "#ffffff" }}>
-      {/* TOOLBAR */}
-      <div className="mx-1.5 mt-1.5 mb-0.5">
-        <div className="flex items-center gap-1 overflow-x-auto px-0.5 py-0.5 scrollbar-hide">
-          {/* View */}
-          <ToolbarChip icon={layoutOptions.find((o) => o.id === layout)?.icon || LayoutGrid}
-            label={layoutOptions.find((o) => o.id === layout)?.label || "Grid"}
-            active={openPanel === "view"} onClick={() => toggle("view")} />
-          {/* Sort */}
-          <ToolbarChip icon={ArrowUpDown} label={SORT_LABELS[sort]} active={openPanel === "sort"}
-            onClick={() => toggle("sort")} />
-          {/* Circle */}
-          <ToolbarChip icon={CircleDot} label="Circle" active={openPanel === "circles" || !!circleFilter}
-            badge={circleFilter ? "1" : undefined} onClick={() => toggle("circles")} />
-          {/* Type (board only) */}
-          {viewMode === "board" && (
-            <ToolbarChip icon={Layers} label="Type" active={openPanel === "types" || !!typeFilter}
-              badge={typeFilter ? "1" : undefined} onClick={() => toggle("types")} />
-          )}
-          {/* Date */}
-          <ToolbarChip icon={CalendarDays} label="Date" active={openPanel === "date" || !!dateFilter}
-            badge={dateFilter ? "1" : undefined} onClick={() => toggle("date")} />
-          {/* Status */}
-          <ToolbarChip icon={Activity} label="Status" active={openPanel === "status" || !!statusFilter}
-            badge={statusFilter ? "1" : undefined} onClick={() => toggle("status")} />
-          {/* Priority */}
-          <ToolbarChip icon={AlertTriangle} label="Priority" active={openPanel === "priority" || !!priorityFilter}
-            badge={priorityFilter ? "1" : undefined} onClick={() => toggle("priority")} />
-          {/* Clear */}
-          {activeFilterCount > 0 && (
-            <button onClick={() => { setTypeFilter(null); setCircleFilter(null); setPriorityFilter(null); setDateFilter(null); setStatusFilter(null); }}
-              className="flex flex-shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-[10px] font-semibold"
-              style={{ background: "#fee2e2", color: "#ef4444" }}>
-              <X className="h-2.5 w-2.5" /> Clear ({activeFilterCount})
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="relative flex h-full flex-col" style={{ background: "#faf9f7" }}>
 
-      {/* DROPDOWN PANELS */}
+      {/* DROPDOWN PANELS — anchored fixed under header */}
       {openPanel === "view" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Layout</p>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Layout</p>
+          <div className="flex flex-wrap gap-1.5">
             {layoutOptions.map((o) => (
               <button key={o.id} onClick={() => { setLayout(o.id); setOpenPanel(null); }}
-                className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-semibold"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
                 style={{ background: layout === o.id ? "#1a1e2e" : "#f5f5f4", color: layout === o.id ? "#fff" : "#555" }}>
-                <o.icon className="h-3.5 w-3.5" />
-                {o.label}
+                <o.icon className="h-3.5 w-3.5" /> {o.label}
               </button>
             ))}
           </div>
@@ -429,11 +445,11 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
       {openPanel === "sort" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Sort by</p>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Sort by</p>
+          <div className="flex flex-wrap gap-1.5">
             {sortModes.map((s) => (
               <button key={s} onClick={() => { setSort(s); setOpenPanel(null); }}
-                className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold"
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
                 style={{ background: sort === s ? "#1a1e2e" : "#f5f5f4", color: sort === s ? "#fff" : "#555" }}>
                 {sort === s && <Check className="h-3 w-3" />} {SORT_LABELS[s]}
               </button>
@@ -444,18 +460,21 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
       {openPanel === "circles" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Circle</p>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Circle</p>
+          <div className="flex flex-wrap gap-1.5">
             <button onClick={() => { setCircleFilter(null); setOpenPanel(null); }}
-              className="rounded-md px-2.5 py-1 text-[11px] font-semibold"
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold active:scale-95"
               style={{ background: !circleFilter ? "#1a1e2e" : "#f5f5f4", color: !circleFilter ? "#fff" : "#555" }}>All</button>
             {allCircles.map((c) => {
-              const Icon = CIRCLE_ICONS[c]; const active = circleFilter === c;
-              return (<button key={c} onClick={() => { setCircleFilter(active ? null : c); setOpenPanel(null); }}
-                className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold capitalize"
-                style={{ background: active ? "#1a1e2e" : "#f5f5f4", color: active ? "#fff" : "#555" }}>
-                <Icon className="h-3 w-3" /> {c}
-              </button>);
+              const Icon = CIRCLE_ICONS[c];
+              const active = circleFilter === c;
+              return (
+                <button key={c} onClick={() => { setCircleFilter(active ? null : c); setOpenPanel(null); }}
+                  className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold capitalize active:scale-95"
+                  style={{ background: active ? "#1a1e2e" : "#f5f5f4", color: active ? "#fff" : "#555" }}>
+                  <Icon className="h-3.5 w-3.5" /> {c}
+                </button>
+              );
             })}
           </div>
         </DropdownPanel>
@@ -463,19 +482,23 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
       {openPanel === "types" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Type</p>
-          <div className="grid grid-cols-5 gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Type</p>
+          <div className="grid grid-cols-5 gap-1.5">
             <button onClick={() => { setTypeFilter(null); setOpenPanel(null); }}
-              className="flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold"
+              className="flex flex-col items-center gap-0.5 rounded-lg py-2 text-[10px] font-semibold active:scale-95"
               style={{ background: !typeFilter ? "#1a1e2e" : "#f5f5f4", color: !typeFilter ? "#fff" : "#555" }}>
-              <Layers className="h-3.5 w-3.5" /> All
+              <Layers className="h-4 w-4" /> All
             </button>
-            {allTypes.map((t) => { const Icon = TYPE_ICONS[t]; const active = typeFilter === t;
-              return (<button key={t} onClick={() => { setTypeFilter(active ? null : t); setOpenPanel(null); }}
-                className="flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold capitalize"
-                style={{ background: active ? "#1a1e2e" : "#f5f5f4", color: active ? "#fff" : "#555" }}>
-                <Icon className="h-3.5 w-3.5" /> {t}
-              </button>);
+            {allTypes.map((t) => {
+              const Icon = TYPE_ICONS[t];
+              const active = typeFilter === t;
+              return (
+                <button key={t} onClick={() => { setTypeFilter(active ? null : t); setOpenPanel(null); }}
+                  className="flex flex-col items-center gap-0.5 rounded-lg py-2 text-[10px] font-semibold capitalize active:scale-95"
+                  style={{ background: active ? "#1a1e2e" : "#f5f5f4", color: active ? "#fff" : "#555" }}>
+                  <Icon className="h-4 w-4" /> {t}
+                </button>
+              );
             })}
           </div>
         </DropdownPanel>
@@ -483,11 +506,11 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
       {openPanel === "date" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Date</p>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Date</p>
+          <div className="flex flex-wrap gap-1.5">
             {DATE_OPTIONS.map((o) => (
               <button key={o.label} onClick={() => { setDateFilter(o.id); setOpenPanel(null); }}
-                className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold"
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold active:scale-95"
                 style={{ background: dateFilter === o.id ? "#1a1e2e" : "#f5f5f4", color: dateFilter === o.id ? "#fff" : "#555" }}>
                 {dateFilter === o.id && <Check className="h-3 w-3" />} {o.label}
               </button>
@@ -498,11 +521,11 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
       {openPanel === "status" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Status</p>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Status</p>
+          <div className="flex flex-wrap gap-1.5">
             {STATUS_OPTIONS.map((o) => (
               <button key={o.label} onClick={() => { setStatusFilter(o.id); setOpenPanel(null); }}
-                className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold"
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold active:scale-95"
                 style={{ background: statusFilter === o.id ? "#1a1e2e" : "#f5f5f4", color: statusFilter === o.id ? "#fff" : "#555" }}>
                 {statusFilter === o.id && <Check className="h-3 w-3" />} {o.label}
               </button>
@@ -513,17 +536,20 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
 
       {openPanel === "priority" && (
         <DropdownPanel onClose={() => setOpenPanel(null)}>
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Priority</p>
-          <div className="flex flex-wrap gap-1">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: "#999" }}>Filter by Priority</p>
+          <div className="flex flex-wrap gap-1.5">
             <button onClick={() => { setPriorityFilter(null); setOpenPanel(null); }}
-              className="rounded-md px-2.5 py-1 text-[11px] font-semibold"
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold active:scale-95"
               style={{ background: !priorityFilter ? "#1a1e2e" : "#f5f5f4", color: !priorityFilter ? "#fff" : "#555" }}>All</button>
-            {allPriorities.map((p) => { const active = priorityFilter === p;
-              return (<button key={p} onClick={() => { setPriorityFilter(active ? null : p); setOpenPanel(null); }}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold capitalize"
-                style={{ background: active ? "#1a1e2e" : "#f5f5f4", color: active ? "#fff" : "#555" }}>
-                <span className="h-2 w-2 rounded-full" style={{ background: PRIORITY_COLORS[p] }} /> {p}
-              </button>);
+            {allPriorities.map((p) => {
+              const active = priorityFilter === p;
+              return (
+                <button key={p} onClick={() => { setPriorityFilter(active ? null : p); setOpenPanel(null); }}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold capitalize active:scale-95"
+                  style={{ background: active ? "#1a1e2e" : "#f5f5f4", color: active ? "#fff" : "#555" }}>
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: PRIORITY_COLORS[p] }} /> {p}
+                </button>
+              );
             })}
           </div>
         </DropdownPanel>
@@ -532,57 +558,61 @@ export default function BoardView({ things, onTap, onAdd }: BoardViewProps) {
       {/* CONTENT */}
       <div key={layout} className="animate-fade-in flex-1 overflow-hidden">
         {layout === "outline" ? renderOutline()
-         : layout === "kanban" ? renderKanban()
-         : layout === "eisenhower" ? renderEisenhower()
-         : (
-          <div className="dot-grid h-full overflow-y-auto px-1.5 pb-24 pt-1">
-          {pinned.length > 0 && (
-            <div className="mb-2">
-              <div className="flex items-center gap-1.5 px-1 pb-1">
-                <Pin className="h-2.5 w-2.5" style={{ color: "#ef4444" }} />
-                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#999" }}>Pinned</span>
-                <span className="text-[9px] tabular-nums" style={{ color: "#ccc" }}>{pinned.length}</span>
-              </div>
-              {renderCards(pinned)}
-              <div className="mx-4 mt-2 border-t" style={{ borderColor: "rgba(0,0,0,0.06)" }} />
-            </div>
-          )}
-          {unpinned.length > 0 && (
-            <div>
-              {pinned.length > 0 && (
-                <div className="flex items-center gap-1.5 px-1 pb-1 pt-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#bbb" }}>
-                    {viewMode === "board" ? "All" : viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}
-                  </span>
-                  <span className="text-[9px] tabular-nums" style={{ color: "#ccc" }}>{unpinned.length}</span>
+          : layout === "kanban" ? renderKanban()
+            : layout === "eisenhower" ? renderEisenhower()
+              : (
+                <div className="dot-grid h-full overflow-y-auto px-2 pb-24 pt-2">
+                  {pinned.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-1.5 px-1 pb-1.5">
+                        <Pin className="h-3 w-3" style={{ color: "#ef4444" }} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#999" }}>Pinned</span>
+                        <span className="text-[10px] tabular-nums" style={{ color: "#ccc" }}>{pinned.length}</span>
+                      </div>
+                      {renderCards(pinned)}
+                      <div className="mx-4 mt-3 border-t" style={{ borderColor: "rgba(0,0,0,0.06)" }} />
+                    </div>
+                  )}
+                  {unpinned.length > 0 && (
+                    <div>
+                      {pinned.length > 0 && (
+                        <div className="flex items-center gap-1.5 px-1 pb-1.5 pt-1">
+                          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#bbb" }}>
+                            {viewMode === "board" ? "All" : viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}
+                          </span>
+                          <span className="text-[10px] tabular-nums" style={{ color: "#ccc" }}>{unpinned.length}</span>
+                        </div>
+                      )}
+                      {renderCards(unpinned)}
+                    </div>
+                  )}
+                  {totalCount === 0 && (
+                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                      <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "rgba(0,0,0,0.03)" }}>
+                        <Plus className="h-7 w-7" style={{ color: "#bbb" }} />
+                      </div>
+                      <p className="mb-1 text-sm font-semibold" style={{ color: "#555" }}>Your board is empty</p>
+                      <p className="mb-4 max-w-[200px] text-[11px] leading-relaxed" style={{ color: "#999" }}>
+                        Create your first Thing to get started
+                      </p>
+                      <button onClick={onAdd}
+                        className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all active:scale-95"
+                        style={{ background: "#1a1e2e", color: "#fff" }}>
+                        <Plus className="h-4 w-4" /> Create a Thing
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-              {renderCards(unpinned)}
-            </div>
-          )}
-          {totalCount === 0 && (
-            <div className="animate-fade-in flex flex-col items-center justify-center py-24 text-center">
-              <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "rgba(0,0,0,0.03)" }}>
-                <Plus className="h-7 w-7" style={{ color: "#bbb" }} />
-              </div>
-              <p className="mb-1 text-sm font-semibold" style={{ color: "#555" }}>Your board is empty</p>
-              <p className="mb-4 max-w-[200px] text-[11px] leading-relaxed" style={{ color: "#999" }}>
-                Create your first Thing to get started organizing your thoughts
-              </p>
-              <button onClick={onAdd} className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold shadow-sm transition-transform active:scale-95"
-                style={{ background: "#1a1e2e", color: "#fff" }}>
-                <Plus className="h-4 w-4" /> Create a Thing
-              </button>
-            </div>
-          )}
-        </div>
-        )}
       </div>
 
       {/* FAB */}
-      <button onClick={onAdd}
-        className="fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-xl shadow-lg"
-        style={{ background: "#1a1e2e", color: "#fff" }} aria-label="Add Thing">
+      <button
+        onClick={onAdd}
+        className="fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg transition-all active:scale-90"
+        style={{ background: "#1a1e2e", color: "#fff" }}
+        aria-label="Add Thing"
+      >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
       </button>
     </div>
