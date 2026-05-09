@@ -328,6 +328,7 @@ export default function CreateThingSheet({ onSave, onClose, defaultType, prefill
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 }
