@@ -27,11 +27,13 @@ const MENU_ORDER: ThingType[] = [
   "movie", "book", "song",
 ];
 
+interface OriginRect { left: number; top: number; width: number; height: number; }
+
 interface FabMenuProps {
   /** Quick add with the contextual default type (normal tap). */
-  onQuickAdd: () => void;
+  onQuickAdd: (rect?: OriginRect) => void;
   /** Add a specific type chosen from the long-press menu. */
-  onSelectType: (type: ThingType) => void;
+  onSelectType: (type: ThingType, rect?: OriginRect) => void;
   className?: string;
 }
 
@@ -39,6 +41,11 @@ export default function FabMenu({ onQuickAdd, onSelectType, className }: FabMenu
   const [open, setOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const rect = (): OriginRect | undefined => {
+    const r = btnRef.current?.getBoundingClientRect();
+    return r ? { left: r.left, top: r.top, width: r.width, height: r.height } : undefined;
+  };
 
   const startPress = useCallback(() => {
     didLongPress.current = false;
@@ -59,7 +66,7 @@ export default function FabMenu({ onQuickAdd, onSelectType, className }: FabMenu
   const handleClick = useCallback(() => {
     cancelPress();
     if (didLongPress.current) return; // long press already opened the menu
-    onQuickAdd();
+    onQuickAdd(rect());
   }, [cancelPress, onQuickAdd]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -71,7 +78,7 @@ export default function FabMenu({ onQuickAdd, onSelectType, className }: FabMenu
 
   const pick = (t: ThingType) => {
     setOpen(false);
-    onSelectType(t);
+    onSelectType(t, rect());
   };
 
   return (
@@ -116,6 +123,7 @@ export default function FabMenu({ onQuickAdd, onSelectType, className }: FabMenu
       )}
 
       <button
+        ref={btnRef}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         onMouseDown={startPress}

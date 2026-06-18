@@ -25,6 +25,9 @@ export type Circle = "work" | "personal" | "home" | "health" | "family";
 
 export type Priority = "low" | "medium" | "high" | "urgent";
 
+/** Media tracker status. "todo" = backlog, "active" = reading/watching/listening, "done" = finished. */
+export type MediaStatus = "todo" | "active" | "done";
+
 export interface ListItem {
   id: string;
   text: string;
@@ -62,4 +65,8 @@ export interface Thing {
   creator?: string;      // director (movie), author (book), artist (song/album)
   year?: string;         // release year
   siteName?: string;     // bookmark site name
+  coverCached?: boolean; // true once coverImage has been mirrored to Vercel Blob
+  // media tracker
+  mediaStatus?: MediaStatus; // backlog / in-progress / finished
+  rating?: number;           // 0-5 stars (0 = unrated)
 }

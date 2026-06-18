@@ -42,6 +42,21 @@ export const DUE_DATE_REQUIRED: ThingType[] = ["reminder", "birthday", "subscrip
 /* Types that support a cover image fetched from a public source */
 export const MEDIA_TYPES: ThingType[] = ["movie", "book", "song"];
 
+/* Per-type labels for the three media-tracker statuses */
+export const MEDIA_STATUS_LABELS: Record<
+  "movie" | "book" | "song",
+  { todo: string; active: string; done: string }
+> = {
+  movie: { todo: "Watchlist", active: "Watching", done: "Watched" },
+  book: { todo: "To read", active: "Reading", done: "Read" },
+  song: { todo: "To listen", active: "Listening", done: "Listened" },
+};
+
+export function mediaStatusLabel(type: ThingType, status: "todo" | "active" | "done"): string {
+  const set = MEDIA_STATUS_LABELS[type as "movie" | "book" | "song"];
+  return set ? set[status] : status;
+}
+
 export const CIRCLE_ICONS: Record<Circle, typeof Briefcase> = {
   work: Briefcase,
   personal: User,

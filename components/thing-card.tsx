@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { Thing } from "@/lib/types";
 import {
   TYPE_ICONS,
@@ -8,9 +8,12 @@ import {
   getCardTextColor,
   getPrioritySticker,
 } from "@/lib/card-helpers";
-import { Check } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import { useSettings } from "@/lib/settings-store";
 import { resolveIcon } from "@/components/icon-picker";
+import { PushPin } from "@/components/push-pin";
+
+interface OriginRect { left: number; top: number; width: number; height: number; }
 
 /* deterministic pseudo-random from thing.id */
 function hash(s: string): number {
@@ -135,13 +138,18 @@ function MediaCover({ thing, textColor }: { thing: Thing; textColor: string }) {
 
 interface ThingCardProps {
   thing: Thing;
-  onTap: () => void;
+  onTap: (rect?: OriginRect) => void;
 }
 
 export default function ThingCard({ thing, onTap }: ThingCardProps) {
   const bg = getCardBg(thing);
   const textColor = getCardTextColor(bg);
   const TypeIcon = TYPE_ICONS[thing.type];
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const handleTap = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    onTap(r ? { left: r.left, top: r.top, width: r.width, height: r.height } : undefined);
+  };
 
   const isExpense = thing.type === "expense" || thing.type === "subscription";
   const isBirthday = thing.type === "birthday";
@@ -162,7 +170,8 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
 
   return (
     <button
-      onClick={onTap}
+      ref={btnRef}
+      onClick={handleTap}
       className="group relative w-full text-left transition-transform active:scale-[0.96]"
     >
       {/* TAPE for unpinned */}
@@ -186,27 +195,10 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
         </div>
       )}
 
-      {/* PUSH PIN for pinned */}
+      {/* PUSH PIN for pinned -- larger + obvious */}
       {thing.pinned && (
-        <div className="absolute z-10" style={{ left: "50%", top: -5, transform: "translateX(-50%)" }}>
-          <div
-            style={{
-              width: 10, height: 10, borderRadius: "50%",
-              background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.3)",
-            }}
-          >
-            <div style={{
-              position: "absolute", top: 2, left: 3,
-              width: 3, height: 2, borderRadius: "50%",
-              background: "rgba(255,255,255,0.35)",
-            }} />
-          </div>
-          <div style={{
-            width: 1.5, height: 4, background: "#999",
-            margin: "0 auto", borderRadius: 1,
-            boxShadow: "1px 1px 3px rgba(0,0,0,0.2)",
-          }} />
+        <div className="absolute z-10" style={{ left: "50%", top: -9, transform: "translateX(-50%)" }}>
+          <PushPin pinned size={18} as="div" />
         </div>
       )}
 
@@ -219,7 +211,7 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
           borderRadius: 3,
           border: "1px solid rgba(0,0,0,0.05)",
           boxShadow: "0 1px 3px rgba(0,0,0,0.07), 0 3px 8px rgba(0,0,0,0.05), 1px 3px 6px rgba(0,0,0,0.03)",
-          marginTop: thing.pinned ? 6 : 3,
+          marginTop: thing.pinned ? 13 : 3,
           padding: "7px 7px 22px 7px",
         }}
       >

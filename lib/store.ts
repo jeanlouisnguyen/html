@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore, useCallback } from "react";
 import type { Thing } from "./types";
+import { nextOccurrence } from "./recurrence";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -130,6 +131,39 @@ export function useThings() {
     emit();
   }, []);
 
+  /**
+   * Toggle a thing's completed state. When completing a recurring thing, the
+   * current instance is marked done AND a fresh incomplete copy is spawned on
+   * its next scheduled date — so finishing one occurrence rolls the schedule
+   * forward automatically.
+   */
+  const toggleComplete = useCallback((id: string) => {
+    const target = things.find((t) => t.id === id);
+    if (!target) return;
+    const nowCompleted = !target.completed;
+    let result = things.map((t) => (t.id === id ? { ...t, completed: nowCompleted } : t));
+
+    if (nowCompleted && target.recurrence) {
+      const baseDate = target.dueDate || target.eventDate;
+      if (baseDate) {
+        const next = nextOccurrence(baseDate, target.recurrence);
+        if (next) {
+          const usesEvent = target.type === "event" || target.type === "birthday";
+          const spawn: Thing = {
+            ...target,
+            id: generateId(),
+            createdAt: fmt(new Date()),
+            completed: false,
+            ...(usesEvent ? { eventDate: next } : { dueDate: next }),
+          };
+          result = [spawn, ...result];
+        }
+      }
+    }
+    things = result;
+    emit();
+  }, []);
+
   const reorder = useCallback((fromIdx: number, toIdx: number) => {
     const arr = [...things];
     const [moved] = arr.splice(fromIdx, 1);
@@ -138,5 +172,5 @@ export function useThings() {
     emit();
   }, []);
 
-  return { things: data, addThing, updateThing, deleteThing, reorder };
+  return { things: data, addThing, updateThing, deleteThing, toggleComplete, reorder };
 }
