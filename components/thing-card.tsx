@@ -75,6 +75,64 @@ function PrioritySticker({ priority }: { priority: Thing["priority"] }) {
   );
 }
 
+/* ---- Media cover: movie poster, book on a shelf, record sleeve ---- */
+function MediaCover({ thing, textColor }: { thing: Thing; textColor: string }) {
+  if (thing.type === "song") {
+    // Record sleeve: square sleeve with vinyl disc peeking out the right edge
+    return (
+      <div>
+        <div className="relative" style={{ aspectRatio: "1 / 1" }}>
+          {/* Vinyl disc */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2" style={{ right: -6, width: "62%", aspectRatio: "1/1" }}>
+            <div className="h-full w-full rounded-full"
+              style={{ background: "radial-gradient(circle, #444 0 18%, #111 18% 100%)", boxShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
+              <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: "#888" }} />
+            </div>
+          </div>
+          {/* Sleeve / album art */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thing.coverImage} alt={thing.title} crossOrigin="anonymous" loading="lazy"
+            className="relative z-10 h-full w-full rounded-sm object-cover"
+            style={{ boxShadow: "2px 2px 6px rgba(0,0,0,0.4)" }} />
+        </div>
+        <p className="mt-1 truncate text-[10px] font-bold leading-tight" style={{ color: textColor }}>{thing.title}</p>
+        {thing.creator && <p className="truncate text-[8px] opacity-60" style={{ color: textColor }}>{thing.creator}</p>}
+      </div>
+    );
+  }
+  if (thing.type === "book") {
+    // Book on a shelf: cover with a darker spine edge on the left
+    return (
+      <div>
+        <div className="relative mx-auto" style={{ aspectRatio: "2 / 3", width: "78%" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thing.coverImage} alt={thing.title} crossOrigin="anonymous" loading="lazy"
+            className="h-full w-full object-cover"
+            style={{ borderRadius: "2px 4px 4px 2px", boxShadow: "3px 3px 7px rgba(0,0,0,0.35)" }} />
+          {/* spine */}
+          <div className="absolute inset-y-0 left-0" style={{ width: 4, background: "linear-gradient(90deg, rgba(0,0,0,0.35), rgba(0,0,0,0))", borderRadius: "2px 0 0 2px" }} />
+          {/* page edge */}
+          <div className="absolute inset-y-1 right-0" style={{ width: 2, background: "repeating-linear-gradient(0deg,#fff,#fff 1px,#ddd 1px,#ddd 2px)" }} />
+        </div>
+        <p className="mt-1 truncate text-center text-[10px] font-bold leading-tight" style={{ color: textColor }}>{thing.title}</p>
+        {thing.creator && <p className="truncate text-center text-[8px] opacity-60" style={{ color: textColor }}>{thing.creator}</p>}
+      </div>
+    );
+  }
+  // movie poster
+  return (
+    <div>
+      <div className="relative mx-auto overflow-hidden rounded-sm" style={{ aspectRatio: "2 / 3", width: "82%", boxShadow: "0 3px 10px rgba(0,0,0,0.45)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={thing.coverImage} alt={thing.title} crossOrigin="anonymous" loading="lazy"
+          className="h-full w-full object-cover" />
+      </div>
+      <p className="mt-1 truncate text-center text-[10px] font-bold leading-tight" style={{ color: textColor }}>{thing.title}</p>
+      {thing.year && <p className="truncate text-center text-[8px] opacity-60" style={{ color: textColor }}>{thing.year}</p>}
+    </div>
+  );
+}
+
 interface ThingCardProps {
   thing: Thing;
   onTap: () => void;
@@ -173,7 +231,28 @@ export default function ThingCard({ thing, onTap }: ThingCardProps) {
 
         {/* CONTENT - readable */}
         <div className="mt-1.5">
-          {isBirthday ? (
+          {(thing.type === "movie" || thing.type === "book" || thing.type === "song") && thing.coverImage ? (
+            <MediaCover thing={thing} textColor={textColor} />
+          ) : thing.type === "bookmark" && (thing.coverImage || thing.faviconUrl) ? (
+            <div>
+              {thing.coverImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thing.coverImage} alt="" className="mb-1 h-16 w-full rounded object-cover"
+                  crossOrigin="anonymous" loading="lazy" />
+              )}
+              <div className="flex items-center gap-1">
+                {thing.faviconUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thing.faviconUrl} alt="" className="h-3.5 w-3.5 flex-shrink-0 rounded-sm"
+                    crossOrigin="anonymous" loading="lazy" />
+                )}
+                <p className="truncate text-xs font-bold leading-tight">{thing.title}</p>
+              </div>
+              {thing.siteName && (
+                <p className="truncate text-[8px] opacity-40">{thing.siteName}</p>
+              )}
+            </div>
+          ) : isBirthday ? (
             <>
               <p className="truncate text-xs font-bold leading-tight">{thing.birthdayPerson || thing.title}</p>
               {thing.eventDate && (

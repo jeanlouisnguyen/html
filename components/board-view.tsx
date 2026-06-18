@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { Thing, ThingType, Circle, Priority } from "@/lib/types";
 import { TYPE_ICONS, CIRCLE_ICONS, getCardBg, getCardTextColor } from "@/lib/card-helpers";
 import ThingCard from "./thing-card";
+import FabMenu from "./fab-menu";
 import {
   ArrowUpDown, Plus, Pin, CircleDot, Layers, CalendarDays, Activity,
   AlertTriangle, LayoutGrid, List, Check, X, Columns, Grid, FileText,
@@ -122,10 +123,11 @@ interface BoardViewProps {
   things: Thing[];
   onTap: (thing: Thing) => void;
   onAdd: () => void;
+  onAddType?: (type: ThingType) => void;
   onHeaderSlotChange?: (slot: React.ReactNode) => void;
 }
 
-export default function BoardView({ things, onTap, onAdd, onHeaderSlotChange }: BoardViewProps) {
+export default function BoardView({ things, onTap, onAdd, onAddType, onHeaderSlotChange }: BoardViewProps) {
   const [typeFilter, setTypeFilter] = useState<ThingType | null>(null);
   const [circleFilter, setCircleFilter] = useState<Circle | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
@@ -606,15 +608,8 @@ export default function BoardView({ things, onTap, onAdd, onHeaderSlotChange }: 
               )}
       </div>
 
-      {/* FAB */}
-      <button
-        onClick={onAdd}
-        className="fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg transition-all active:scale-90"
-        style={{ background: "#1a1e2e", color: "#fff" }}
-        aria-label="Add Thing"
-      >
-        <Plus className="h-5 w-5" strokeWidth={2.5} />
-      </button>
+      {/* FAB -- tap to quick-add, long-press / right-click for type menu */}
+      <FabMenu onQuickAdd={onAdd} onSelectType={(t) => (onAddType ? onAddType(t) : onAdd())} />
     </div>
   );
 }

@@ -6,10 +6,16 @@ import {
   TYPE_ICONS,
   CIRCLE_ICONS,
   CIRCLE_STICKER_COLORS,
+  DUE_DATE_REQUIRED,
+  MEDIA_TYPES,
   getCardBg,
   getCardTextColor,
   getPrioritySticker,
 } from "@/lib/card-helpers";
+import PasswordStrengthMeter from "./password-strength-meter";
+import WebsiteAutocomplete from "./website-autocomplete";
+import RecurrenceSection from "./recurrence-section";
+import { faviconFor } from "@/lib/website-suggestions";
 import {
   ArrowLeft,
   Trash2,
@@ -39,6 +45,12 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
 
   const isExpense = draft.type === "expense" || draft.type === "subscription";
   const isBirthday = draft.type === "birthday";
+  const isMedia = MEDIA_TYPES.includes(draft.type);
+  const usesEventDate = draft.type === "event" || isBirthday;
+  const relevantDate = usesEventDate ? draft.eventDate : draft.dueDate;
+  const dueRequired = DUE_DATE_REQUIRED.includes(draft.type);
+  const showRecurrence = !!relevantDate && draft.type !== "birthday";
+  const dim = textColor === "#f5f5f5";
 
   const patch = (p: Partial<Thing>) => setDraft((d) => ({ ...d, ...p }));
   const handleClose = () => { onSave(draft); onClose(); };
@@ -177,6 +189,35 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
 
           {/* ---- TYPE-SPECIFIC FIELDS ---- */}
           <div className="mt-3 space-y-2.5">
+            {isMedia && draft.coverImage && (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={draft.coverImage} alt="" crossOrigin="anonymous"
+                  className="rounded object-cover"
+                  style={{ width: 64, aspectRatio: draft.type === "song" ? "1 / 1" : "2 / 3", boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }} />
+                <div className="min-w-0">
+                  {draft.creator && <p className="truncate text-sm font-semibold" style={{ color: textColor }}>{draft.creator}</p>}
+                  {draft.year && <p className="text-xs opacity-60" style={{ color: textColor }}>{draft.year}</p>}
+                </div>
+              </div>
+            )}
+            {draft.type === "bookmark" && (draft.coverImage || draft.faviconUrl) && (
+              <div>
+                {draft.coverImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={draft.coverImage} alt="" crossOrigin="anonymous" className="mb-1.5 h-28 w-full rounded-lg object-cover" />
+                )}
+                {draft.siteName && (
+                  <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: textColor, opacity: 0.7 }}>
+                    {draft.faviconUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={draft.faviconUrl} alt="" className="h-4 w-4 rounded" crossOrigin="anonymous" />
+                    )}
+                    {draft.siteName}
+                  </p>
+                )}
+              </div>
+            )}
             {isBirthday && (
               <input className="w-full bg-transparent text-base font-semibold outline-none placeholder:opacity-40"
                 style={{ color: textColor }} placeholder="Person's name"
@@ -205,6 +246,13 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
             )}
             {draft.type === "password" && (
               <>
+                <WebsiteAutocomplete
+                  value={draft.url || ""}
+                  onChange={(v) => patch({ url: v })}
+                  onPickSite={(s) => patch({ url: `https://${s.domain}`, faviconUrl: faviconFor(s.domain, 128) })}
+                  textColor={textColor}
+                  placeholder="Website or service"
+                />
                 <div className="flex items-center gap-2">
                   <input className="flex-1 bg-transparent text-sm outline-none placeholder:opacity-40" style={{ color: textColor }}
                     placeholder="Username" value={draft.username || ""} onChange={(e) => patch({ username: e.target.value })} />
@@ -221,6 +269,7 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
                   <button onClick={() => { if (draft.password) navigator.clipboard.writeText(draft.password); }}
                     className="opacity-30 hover:opacity-60"><Copy className="h-3.5 w-3.5" /></button>
                 </div>
+                <PasswordStrengthMeter password={draft.password || ""} />
               </>
             )}
 
@@ -284,22 +333,22 @@ export default function ThingEditView({ thing, onSave, onDelete, onClose }: Thin
               }} />
           </div>
 
-          {/* Dates */}
-          <div className="mt-3 flex flex-wrap gap-3">
-            {(draft.type === "event" || isBirthday) ? (
-              <label className="flex items-center gap-1.5 text-[10px]" style={{ color: textColor, opacity: 0.5 }}>
-                Event:
-                <input type="date" className="bg-transparent text-[10px] outline-none" style={{ color: textColor }}
-                  value={draft.eventDate || ""} onChange={(e) => patch({ eventDate: e.target.value || undefined })} />
-              </label>
-            ) : (
-              <label className="flex items-center gap-1.5 text-[10px]" style={{ color: textColor, opacity: 0.5 }}>
-                Due:
-                <input type="date" className="bg-transparent text-[10px] outline-none" style={{ color: textColor }}
-                  value={draft.dueDate || ""} onChange={(e) => patch({ dueDate: e.target.value || undefined })} />
-              </label>
-            )}
+          {/* Universal due / event date */}
+          <div className="mt-3">
+            <label className="flex items-center gap-1.5 text-[10px] font-bold"
+              style={{ color: dueRequired && !relevantDate ? "#ef4444" : textColor, opacity: dueRequired && !relevantDate ? 1 : 0.55 }}>
+              {usesEventDate ? "Event date" : "Due date"}{dueRequired ? " (required)" : " (optional)"}:
+              <input type="date" className="bg-transparent text-[10px] outline-none"
+                style={{ color: dueRequired && !relevantDate ? "#ef4444" : textColor }}
+                value={(usesEventDate ? draft.eventDate : draft.dueDate) || ""}
+                onChange={(e) => patch(usesEventDate ? { eventDate: e.target.value || undefined } : { dueDate: e.target.value || undefined })} />
+            </label>
           </div>
+
+          {/* Recurrence (appears when a date is present) */}
+          {showRecurrence && (
+            <RecurrenceSection value={draft.recurrence} onChange={(r) => patch({ recurrence: r })} textColor={textColor} />
+          )}
 
           {/* Eisenhower quadrant (tasks only) */}
           {draft.type === "task" && (

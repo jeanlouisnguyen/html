@@ -15,6 +15,9 @@ import {
   Home,
   Heart,
   Users,
+  Film,
+  BookOpen,
+  Disc3,
 } from "lucide-react";
 
 export const TYPE_ICONS: Record<ThingType, typeof CheckSquare> = {
@@ -28,7 +31,16 @@ export const TYPE_ICONS: Record<ThingType, typeof CheckSquare> = {
   subscription: CreditCard,
   birthday: Gift,
   password: Lock,
+  movie: Film,
+  book: BookOpen,
+  song: Disc3,
 };
+
+/* Types whose due date is mandatory */
+export const DUE_DATE_REQUIRED: ThingType[] = ["reminder", "birthday", "subscription"];
+
+/* Types that support a cover image fetched from a public source */
+export const MEDIA_TYPES: ThingType[] = ["movie", "book", "song"];
 
 export const CIRCLE_ICONS: Record<Circle, typeof Briefcase> = {
   work: Briefcase,
@@ -104,10 +116,22 @@ export function getCardBg(thing: Thing): string {
     case "note": return "#ffffff";
     case "event": return "#d4e8ff";
     case "task": return "#fff9c4";
+    case "movie": return "#1a1a2e";
+    case "book": return "#f3e8d8";
+    case "song": return "#1c1c1c";
     default: return "#ffffff";
   }
 }
 
-export function getCardTextColor(_bg: string): string {
+export function getCardTextColor(bg: string): string {
+  // Determine luminance for dark backgrounds (movie/song)
+  const hex = bg.replace("#", "");
+  if (hex.length === 6) {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    if (lum < 0.4) return "#f5f5f5";
+  }
   return "#1a1e2e";
 }

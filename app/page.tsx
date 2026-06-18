@@ -10,7 +10,7 @@ import CalendarView from "@/components/calendar-view";
 import ThingEditView from "@/components/thing-edit-view";
 import CreateThingSheet from "@/components/create-thing-sheet";
 import SettingsView from "@/components/settings-view";
-import { Plus } from "lucide-react";
+import FabMenu from "@/components/fab-menu";
 
 /* Map active tab to default Thing type */
 function tabToDefaultType(tab: Tab): ThingType {
@@ -34,6 +34,7 @@ export default function Page() {
   const [calendarDailyDate, setCalendarDailyDate] = useState<string | undefined>();
   const [createStartTime, setCreateStartTime] = useState<string | undefined>();
   const [createPrefillDate, setCreatePrefillDate] = useState<string | undefined>();
+  const [forcedType, setForcedType] = useState<ThingType | undefined>();
   const [headerSlot, setHeaderSlot] = useState<ReactNode>(null);
 
   const handleLoadDone = useCallback(() => setLoading(false), []);
@@ -47,11 +48,19 @@ export default function Page() {
   const handleAdd = () => {
     setCreateStartTime(undefined);
     setCreatePrefillDate(undefined);
+    setForcedType(undefined);
+    setCreating(true);
+  };
+  const handleAddType = (t: ThingType) => {
+    setCreateStartTime(undefined);
+    setCreatePrefillDate(undefined);
+    setForcedType(t);
     setCreating(true);
   };
   const handleCreateAtTime = (date: string, hour: number) => {
     setCreatePrefillDate(date);
     setCreateStartTime(`${hour.toString().padStart(2, "0")}:00`);
+    setForcedType(undefined);
     setCreating(true);
   };
   const handleToggle = (id: string) => {
@@ -68,14 +77,14 @@ export default function Page() {
     return <LoadingScreen onDone={handleLoadDone} />;
   }
 
-  const defaultType = createStartTime ? "event" as ThingType : tabToDefaultType(tab);
+  const defaultType = forcedType || (createStartTime ? ("event" as ThingType) : tabToDefaultType(tab));
   const prefillDate = createPrefillDate || (tab === "calendar" ? calendarDailyDate : undefined);
 
   return (
     <>
       <AppShell activeTab={tab} onTabChange={handleTabChange} onSettingsOpen={() => setSettingsOpen(true)} headerSlot={headerSlot}>
         {tab === "board" && (
-          <BoardView things={things} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
+          <BoardView things={things} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "calendar" && (
           <CalendarView
@@ -87,28 +96,21 @@ export default function Page() {
           />
         )}
         {tab === "tasks" && (
-          <BoardView things={tasks} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
+          <BoardView things={tasks} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "notes" && (
-          <BoardView things={notes} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
+          <BoardView things={notes} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "budget" && (
-          <BoardView things={budgetTypes} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
+          <BoardView things={budgetTypes} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
         {tab === "reminders" && (
-          <BoardView things={reminders} onTap={handleTap} onAdd={handleAdd} onHeaderSlotChange={setHeaderSlot} />
+          <BoardView things={reminders} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
 
         {/* Global FAB -- visible on Calendar tab (BoardView has its own) */}
         {tab === "calendar" && (
-          <button
-            onClick={handleAdd}
-            className="fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-xl shadow-lg"
-            style={{ background: "#1a1e2e", color: "#fff" }}
-            aria-label="Add Thing"
-          >
-            <Plus className="h-5 w-5" strokeWidth={2.5} />
-          </button>
+          <FabMenu onQuickAdd={handleAdd} onSelectType={handleAddType} />
         )}
       </AppShell>
 
@@ -124,7 +126,7 @@ export default function Page() {
       {creating && (
         <CreateThingSheet
           onSave={addThing}
-          onClose={() => { setCreating(false); setCreateStartTime(undefined); setCreatePrefillDate(undefined); }}
+          onClose={() => { setCreating(false); setCreateStartTime(undefined); setCreatePrefillDate(undefined); setForcedType(undefined); }}
           defaultType={defaultType}
           prefillDate={prefillDate}
           prefillStartTime={createStartTime}

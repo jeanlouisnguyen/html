@@ -8,7 +8,18 @@ export type ThingType =
   | "expense"
   | "subscription"
   | "birthday"
-  | "password";
+  | "password"
+  | "movie"
+  | "book"
+  | "song";
+
+export type RecurUnit = "day" | "week" | "month" | "year";
+
+export interface Recurrence {
+  every: number;        // e.g. every 2 weeks
+  unit: RecurUnit;
+  endDate?: string;     // optional stop date
+}
 
 export type Circle = "work" | "personal" | "home" | "health" | "family";
 
@@ -41,7 +52,14 @@ export interface Thing {
   password?: string;
   username?: string;
   items?: ListItem[];
-  recurring?: "daily" | "weekly" | "monthly" | "yearly";
+  recurring?: "daily" | "weekly" | "monthly" | "yearly"; // legacy
+  recurrence?: Recurrence;
   birthdayPerson?: string;
   eisenhower?: "do" | "schedule" | "delegate" | "delete";
+  // media + rich metadata
+  coverImage?: string;   // poster / book cover / album art / bookmark thumbnail
+  faviconUrl?: string;   // bookmark favicon
+  creator?: string;      // director (movie), author (book), artist (song/album)
+  year?: string;         // release year
+  siteName?: string;     // bookmark site name
 }
