@@ -15,21 +15,38 @@ function upscaleItunes(url: string, size = 600): string {
   return url.replace(/\/\d+x\d+(bb)?\./, `/${size}x${size}$1.`);
 }
 
-/** Search movies via the iTunes Search API (free, no key). */
+/**
+ * Search movies via Wikipedia (free, no key, CORS-enabled).
+ * Uses pilicense=any so fair-use theatrical posters are returned as page images.
+ */
 export async function searchMovies(query: string, signal?: AbortSignal): Promise<MediaResult[]> {
   const q = query.trim();
   if (!q) return [];
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=movie&entity=movie&limit=8&country=CA`;
+  const url =
+    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
+    `&generator=search&gsrsearch=${encodeURIComponent(q + " film")}&gsrlimit=8` +
+    `&prop=pageimages|description&piprop=thumbnail&pithumbsize=500&pilicense=any`;
   const res = await fetch(url, { signal });
   if (!res.ok) return [];
   const data = await res.json();
-  return (data.results || []).map((r: any) => ({
-    id: String(r.trackId ?? r.collectionId ?? Math.random()),
-    title: r.trackName || r.collectionName || "Untitled",
-    subtitle: r.artistName,
-    year: r.releaseDate ? String(new Date(r.releaseDate).getFullYear()) : undefined,
-    image: r.artworkUrl100 ? upscaleItunes(r.artworkUrl100, 600) : "",
-  }));
+  const pages: any[] = data.query?.pages ? Object.values(data.query.pages) : [];
+  pages.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  return pages
+    .filter((p) => {
+      const d = (p.description || "").toLowerCase();
+      // Keep entries that are films (exclude soundtracks, people, lists)
+      return p.thumbnail && /\bfilm\b|\bmovie\b/.test(d) && !/soundtrack|album|registry|list of/.test(d);
+    })
+    .map((p) => {
+      const yearMatch = (p.description || "").match(/\b(19|20)\d{2}\b/);
+      return {
+        id: String(p.pageid),
+        title: (p.title || "Untitled").replace(/\s*\(film\)$/i, "").replace(/\s*\(\d{4} film\)$/i, ""),
+        subtitle: p.description,
+        year: yearMatch ? yearMatch[0] : undefined,
+        image: p.thumbnail?.source || "",
+      };
+    });
 }
 
 /** Search music albums/songs via the iTunes Search API (free, no key). */
