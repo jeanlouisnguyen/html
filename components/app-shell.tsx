@@ -8,10 +8,11 @@ import {
   FileText,
   Wallet,
   Bell,
+  Library,
   Settings,
 } from "lucide-react";
 
-export type Tab = "board" | "calendar" | "tasks" | "notes" | "budget" | "reminders";
+export type Tab = "board" | "calendar" | "tasks" | "notes" | "budget" | "reminders" | "library";
 
 const TABS: { id: Tab; icon: typeof LayoutGrid; label: string }[] = [
   { id: "board", icon: LayoutGrid, label: "Board" },
@@ -20,6 +21,7 @@ const TABS: { id: Tab; icon: typeof LayoutGrid; label: string }[] = [
   { id: "notes", icon: FileText, label: "Notes" },
   { id: "budget", icon: Wallet, label: "Budget" },
   { id: "reminders", icon: Bell, label: "Reminders" },
+  { id: "library", icon: Library, label: "Library" },
 ];
 
 interface AppShellProps {
@@ -65,7 +67,7 @@ export default function AppShell({ activeTab, onTabChange, onSettingsOpen, heade
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="relative flex flex-col items-center gap-0.5 px-2 py-1.5 transition-all active:scale-90"
+              className="relative flex flex-col items-center gap-0.5 px-1 py-1.5 transition-all active:scale-90"
               aria-label={tab.label}
             >
               {/* Active indicator pill */}

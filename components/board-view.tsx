@@ -119,11 +119,13 @@ function DropdownPanel({ children, onClose }: { children: React.ReactNode; onClo
   );
 }
 
+interface OriginRect { left: number; top: number; width: number; height: number; }
+
 interface BoardViewProps {
   things: Thing[];
-  onTap: (thing: Thing) => void;
-  onAdd: () => void;
-  onAddType?: (type: ThingType) => void;
+  onTap: (thing: Thing, rect?: OriginRect) => void;
+  onAdd: (rect?: OriginRect) => void;
+  onAddType?: (type: ThingType, rect?: OriginRect) => void;
   onHeaderSlotChange?: (slot: React.ReactNode) => void;
 }
 
@@ -281,7 +283,7 @@ export default function BoardView({ things, onTap, onAdd, onAddType, onHeaderSlo
         <div className="flex flex-col gap-0.5">
           {items.map((thing) => (
             <div key={thing.id}>
-              <ThingCard thing={thing} onTap={() => onTap(thing)} />
+              <ThingCard thing={thing} onTap={(rect) => onTap(thing, rect)} />
             </div>
           ))}
         </div>
@@ -295,7 +297,7 @@ export default function BoardView({ things, onTap, onAdd, onAddType, onHeaderSlo
             className="relative break-inside-avoid"
             style={{ marginBottom: 2, marginTop: idx >= 3 ? -6 : 0, zIndex: idx }}
           >
-            <ThingCard thing={thing} onTap={() => onTap(thing)} />
+            <ThingCard thing={thing} onTap={(rect) => onTap(thing, rect)} />
           </div>
         ))}
       </div>
@@ -365,7 +367,7 @@ export default function BoardView({ things, onTap, onAdd, onAddType, onHeaderSlo
             <div className="flex-1 space-y-1 overflow-y-auto px-1 pb-2">
               {items.map((thing) => (
                 <div key={thing.id}>
-                  <ThingCard thing={thing} onTap={() => onTap(thing)} />
+                  <ThingCard thing={thing} onTap={(rect) => onTap(thing, rect)} />
                 </div>
               ))}
               {items.length === 0 && (
@@ -597,7 +599,7 @@ export default function BoardView({ things, onTap, onAdd, onAddType, onHeaderSlo
                       <p className="mb-4 max-w-[200px] text-[11px] leading-relaxed" style={{ color: "#999" }}>
                         Create your first Thing to get started
                       </p>
-                      <button onClick={onAdd}
+                      <button onClick={() => onAdd()}
                         className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all active:scale-95"
                         style={{ background: "#1a1e2e", color: "#fff" }}>
                         <Plus className="h-4 w-4" /> Create a Thing

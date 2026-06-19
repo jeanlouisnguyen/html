@@ -78,6 +78,24 @@ function PrioritySticker({ priority }: { priority: Thing["priority"] }) {
   );
 }
 
+/* Compact rating row shown on media cards */
+function CardStars({ rating, textColor }: { rating?: number; textColor: string }) {
+  if (!rating) return null;
+  return (
+    <div className="mt-0.5 flex items-center justify-center gap-px" aria-label={`${rating} of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className="h-2.5 w-2.5"
+          style={{ color: n <= rating ? "#f5b301" : textColor, opacity: n <= rating ? 1 : 0.25 }}
+          fill={n <= rating ? "#f5b301" : "none"}
+          strokeWidth={2}
+        />
+      ))}
+    </div>
+  );
+}
+
 /* ---- Media cover: movie poster, book on a shelf, record sleeve ---- */
 function MediaCover({ thing, textColor }: { thing: Thing; textColor: string }) {
   if (thing.type === "song") {
@@ -100,6 +118,7 @@ function MediaCover({ thing, textColor }: { thing: Thing; textColor: string }) {
         </div>
         <p className="mt-1 truncate text-[10px] font-bold leading-tight" style={{ color: textColor }}>{thing.title}</p>
         {thing.creator && <p className="truncate text-[8px] opacity-60" style={{ color: textColor }}>{thing.creator}</p>}
+        <CardStars rating={thing.rating} textColor={textColor} />
       </div>
     );
   }
@@ -119,6 +138,7 @@ function MediaCover({ thing, textColor }: { thing: Thing; textColor: string }) {
         </div>
         <p className="mt-1 truncate text-center text-[10px] font-bold leading-tight" style={{ color: textColor }}>{thing.title}</p>
         {thing.creator && <p className="truncate text-center text-[8px] opacity-60" style={{ color: textColor }}>{thing.creator}</p>}
+        <CardStars rating={thing.rating} textColor={textColor} />
       </div>
     );
   }
@@ -132,6 +152,7 @@ function MediaCover({ thing, textColor }: { thing: Thing; textColor: string }) {
       </div>
       <p className="mt-1 truncate text-center text-[10px] font-bold leading-tight" style={{ color: textColor }}>{thing.title}</p>
       {thing.year && <p className="truncate text-center text-[8px] opacity-60" style={{ color: textColor }}>{thing.year}</p>}
+      <CardStars rating={thing.rating} textColor={textColor} />
     </div>
   );
 }
