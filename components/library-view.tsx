@@ -114,37 +114,52 @@ function PosterTile({ thing, onTap }: { thing: Thing; onTap: LibraryViewProps["o
 
 /* ---------- Bookshelf ---------- */
 function Bookshelf({ items, onTap, onAdd }: { items: Thing[]; onTap: LibraryViewProps["onTap"]; onAdd: () => void }) {
-  // chunk into rows of 4 so each row can sit on a wooden shelf plank
+  // chunk into rows of 3 so each row sits as standing books on a wooden plank
   const rows: Thing[][] = [];
-  for (let i = 0; i < items.length; i += 4) rows.push(items.slice(i, i + 4));
+  for (let i = 0; i < items.length; i += 3) rows.push(items.slice(i, i + 3));
   if (rows.length === 0) rows.push([]);
   return (
-    <div className="px-3 pb-28 pt-3">
-      {rows.map((row, ri) => (
-        <div key={ri} className="mb-5">
-          <div className="flex items-end justify-center gap-2" style={{ minHeight: 150 }}>
-            {row.map((t) => (
-              <BookSpine key={t.id} thing={t} onTap={onTap} />
-            ))}
-            {ri === rows.length - 1 && (
-              <button
-                onClick={onAdd}
-                className="flex items-center justify-center rounded-sm border-2 border-dashed transition-transform active:scale-95"
-                style={{ width: 40, height: 130, borderColor: "rgba(120,80,40,0.4)", color: "rgba(120,80,40,0.7)" }}
-                aria-label="Add a book"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
+    <div className="px-4 pb-28 pt-4">
+      {/* Bookcase frame */}
+      <div
+        className="rounded-lg px-3 pt-3"
+        style={{
+          background: "linear-gradient(180deg,#5b3a1d,#42290f)",
+          boxShadow: "inset 0 0 24px rgba(0,0,0,0.55), 0 10px 24px rgba(0,0,0,0.3)",
+          border: "6px solid #3a2410",
+        }}
+      >
+        {rows.map((row, ri) => (
+          <div key={ri} className="mb-1">
+            {/* back panel behind books */}
+            <div
+              className="flex items-end justify-center gap-3 rounded-sm px-2 pt-3"
+              style={{ minHeight: 180, background: "linear-gradient(180deg,#3a2410,#2d1c0c)" }}
+            >
+              {row.map((t) => (
+                <BookSpine key={t.id} thing={t} onTap={onTap} />
+              ))}
+              {ri === rows.length - 1 && (
+                <button
+                  onClick={onAdd}
+                  className="flex flex-col items-center justify-center gap-1 self-end rounded-sm border-2 border-dashed text-[9px] font-bold transition-transform active:scale-95"
+                  style={{ width: 56, height: 150, borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.6)" }}
+                  aria-label="Add a book"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </button>
+              )}
+            </div>
+            {/* wooden plank */}
+            <div style={{
+              height: 14, borderRadius: 2,
+              background: "linear-gradient(180deg,#a06a34,#7a4d23)",
+              boxShadow: "0 7px 12px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.18)",
+            }} />
           </div>
-          {/* wooden plank */}
-          <div style={{
-            height: 12, borderRadius: 2,
-            background: "linear-gradient(180deg,#8a5a2b,#6b431f)",
-            boxShadow: "0 6px 10px rgba(0,0,0,0.35), inset 0 2px 2px rgba(255,255,255,0.15)",
-          }} />
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -156,32 +171,36 @@ function BookSpine({ thing, onTap }: { thing: Thing; onTap: LibraryViewProps["on
     onTap(thing, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : undefined);
   };
   return (
-    <button ref={ref} onClick={tap} className="group relative transition-transform active:scale-95"
-      style={{ width: 78 }} aria-label={thing.title}>
-      <div className="relative mx-auto" style={{ width: 74, aspectRatio: "2 / 3" }}>
+    <button ref={ref} onClick={tap}
+      className="group relative transition-all duration-200 hover:-translate-y-2 active:scale-95"
+      style={{ width: 100 }} aria-label={thing.title}>
+      <div className="relative mx-auto" style={{ width: 96, aspectRatio: "2 / 3" }}>
         {thing.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thing.coverImage} alt={thing.title} crossOrigin="anonymous" loading="lazy"
             className="h-full w-full object-cover"
-            style={{ borderRadius: "2px 4px 4px 2px", boxShadow: "3px 4px 8px rgba(0,0,0,0.4)" }} />
+            style={{ borderRadius: "2px 5px 5px 2px", boxShadow: "4px 5px 10px rgba(0,0,0,0.5)" }} />
         ) : (
           <div className="flex h-full w-full items-center justify-center"
-            style={{ background: "#b08968", borderRadius: "2px 4px 4px 2px" }}>
-            <BookOpen className="h-5 w-5 text-white/60" />
+            style={{ background: "#b08968", borderRadius: "2px 5px 5px 2px" }}>
+            <BookOpen className="h-6 w-6 text-white/60" />
           </div>
         )}
         {/* spine shadow */}
-        <div className="absolute inset-y-0 left-0" style={{ width: 5, background: "linear-gradient(90deg, rgba(0,0,0,0.4), transparent)", borderRadius: "2px 0 0 2px" }} />
+        <div className="absolute inset-y-0 left-0" style={{ width: 6, background: "linear-gradient(90deg, rgba(0,0,0,0.45), transparent)", borderRadius: "2px 0 0 2px" }} />
         {/* page edges */}
-        <div className="absolute inset-y-1 right-0" style={{ width: 2, background: "repeating-linear-gradient(0deg,#fff,#fff 1px,#ddd 1px,#ddd 2px)" }} />
+        <div className="absolute inset-y-1 right-0" style={{ width: 3, background: "repeating-linear-gradient(0deg,#fff,#fff 1px,#ddd 1px,#ddd 2px)" }} />
+        {/* status chip */}
+        <div className="absolute left-1 top-1"><StatusChip thing={thing} /></div>
         {thing.rating ? (
           <div className="absolute right-0.5 top-0.5 flex items-center gap-px rounded-full px-1 py-0.5"
-            style={{ background: "rgba(0,0,0,0.55)" }}>
+            style={{ background: "rgba(0,0,0,0.6)" }}>
             <Star className="h-2 w-2" style={{ color: "#f5b301" }} fill="#f5b301" />
             <span className="text-[8px] font-bold text-white">{thing.rating}</span>
           </div>
         ) : null}
       </div>
+      <p className="mt-1 truncate px-0.5 text-center text-[9px] font-semibold text-white/85">{thing.title}</p>
     </button>
   );
 }
@@ -189,18 +208,32 @@ function BookSpine({ thing, onTap }: { thing: Thing; onTap: LibraryViewProps["on
 /* ---------- Record crate ---------- */
 function RecordCrate({ items, onTap, onAdd }: { items: Thing[]; onTap: LibraryViewProps["onTap"]; onAdd: () => void }) {
   return (
-    <div className="grid grid-cols-2 gap-4 px-4 pb-28 pt-4 sm:grid-cols-3">
-      {items.map((t) => (
-        <RecordSleeve key={t.id} thing={t} onTap={onTap} />
-      ))}
-      <button
-        onClick={onAdd}
-        className="flex items-center justify-center rounded-sm border-2 border-dashed transition-transform active:scale-95"
-        style={{ aspectRatio: "1 / 1", borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.5)" }}
-        aria-label="Add a song or album"
+    <div className="px-4 pb-28 pt-4">
+      {/* Wooden crate */}
+      <div
+        className="rounded-lg p-4"
+        style={{
+          background: "linear-gradient(180deg,#4a3422,#33231400)",
+          border: "7px solid #2c1d10",
+          borderTopWidth: 4,
+          boxShadow: "inset 0 12px 30px rgba(0,0,0,0.6), 0 12px 26px rgba(0,0,0,0.4)",
+        }}
       >
-        <Plus className="h-6 w-6" />
-      </button>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3">
+          {items.map((t) => (
+            <RecordSleeve key={t.id} thing={t} onTap={onTap} />
+          ))}
+          <button
+            onClick={onAdd}
+            className="flex flex-col items-center justify-center gap-1 self-start rounded-sm border-2 border-dashed text-[10px] font-bold transition-transform active:scale-95"
+            style={{ aspectRatio: "1 / 1", borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.6)" }}
+            aria-label="Add a song or album"
+          >
+            <Plus className="h-6 w-6" />
+            Add
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

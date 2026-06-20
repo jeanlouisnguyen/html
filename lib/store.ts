@@ -94,6 +94,72 @@ const SEED_THINGS: Thing[] = [
     createdAt: fmt(addDays(today, -8)), dueDate: fmt(addDays(today, -1)),
     description: "Get a nice scarf for Mom"
   },
+  // ---- Media library: movies ----
+  {
+    id: generateId(), title: "Nebula Drift", type: "movie", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["sci-fi"],
+    createdAt: fmt(addDays(today, -12)),
+    coverImage: "/media/movie-nebula.png", coverCached: true,
+    creator: "Ava Marlowe", year: "2024", mediaStatus: "done", rating: 5,
+  },
+  {
+    id: generateId(), title: "City Lights at Midnight", type: "movie", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["thriller"],
+    createdAt: fmt(addDays(today, -6)),
+    coverImage: "/media/movie-citylights.png", coverCached: true,
+    creator: "Dario Fontaine", year: "2023", mediaStatus: "active", rating: 0,
+  },
+  {
+    id: generateId(), title: "The Last Summit", type: "movie", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["adventure"],
+    createdAt: fmt(addDays(today, -2)),
+    coverImage: "/media/movie-summit.png", coverCached: true,
+    creator: "Lena Brooks", year: "2025", mediaStatus: "todo", rating: 0,
+  },
+  // ---- Media library: books ----
+  {
+    id: generateId(), title: "The Tideglass House", type: "book", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["fiction"],
+    createdAt: fmt(addDays(today, -15)),
+    coverImage: "/media/book-tideglass.png", coverCached: true,
+    creator: "Mara Sinclair", year: "2022", mediaStatus: "done", rating: 4,
+  },
+  {
+    id: generateId(), title: "Ember Road", type: "book", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["fantasy"],
+    createdAt: fmt(addDays(today, -9)),
+    coverImage: "/media/book-emberroad.png", coverCached: true,
+    creator: "J. T. Vance", year: "2021", mediaStatus: "active", rating: 0,
+  },
+  {
+    id: generateId(), title: "The Quiet Mind", type: "book", circle: "health",
+    priority: "low", pinned: false, completed: false, tags: ["wellness"],
+    createdAt: fmt(addDays(today, -3)),
+    coverImage: "/media/book-quietmind.png", coverCached: true,
+    creator: "Dr. Helen Park", year: "2023", mediaStatus: "todo", rating: 0,
+  },
+  // ---- Media library: songs / albums ----
+  {
+    id: generateId(), title: "Midnight Radio", type: "song", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["synthwave"],
+    createdAt: fmt(addDays(today, -11)),
+    coverImage: "/media/album-midnightradio.png", coverCached: true,
+    creator: "Neon Atlas", year: "2024", mediaStatus: "done", rating: 5,
+  },
+  {
+    id: generateId(), title: "Golden Hour", type: "song", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["folk"],
+    createdAt: fmt(addDays(today, -7)),
+    coverImage: "/media/album-goldenhour.png", coverCached: true,
+    creator: "River & Pine", year: "2023", mediaStatus: "active", rating: 0,
+  },
+  {
+    id: generateId(), title: "Blue Note Sessions", type: "song", circle: "personal",
+    priority: "low", pinned: false, completed: false, tags: ["jazz"],
+    createdAt: fmt(addDays(today, -1)),
+    coverImage: "/media/album-bluenote.png", coverCached: true,
+    creator: "The Hank Mason Trio", year: "2022", mediaStatus: "todo", rating: 0,
+  },
 ];
 
 type Listener = () => void;
