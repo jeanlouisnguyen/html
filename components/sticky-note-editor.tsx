@@ -42,13 +42,15 @@ interface StickyNoteEditorProps {
   onCreate?: (t: Omit<Thing, "id" | "createdAt">) => void;
   /** edit only — called debounced on every change (real-time autosave) */
   onUpdate?: (updates: Partial<Thing>) => void;
+  /** edit only — toggles completion through the store so recurring items roll forward */
+  onToggleComplete?: () => void;
   /** edit only — actually remove after the throw game completes */
   onDelete?: () => void;
   onClose: () => void;
 }
 
 export default function StickyNoteEditor({
-  mode, initial, originRect, onCreate, onUpdate, onDelete, onClose,
+  mode, initial, originRect, onCreate, onUpdate, onToggleComplete, onDelete, onClose,
 }: StickyNoteEditorProps) {
   const isEdit = mode === "edit";
 

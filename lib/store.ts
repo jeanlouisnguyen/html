@@ -24,6 +24,13 @@ const SEED_THINGS: Thing[] = [
     description: "Prepare Q1 results for management review"
   },
   {
+    id: generateId(), title: "Water the plants", type: "task", circle: "home",
+    priority: "low", pinned: false, completed: false, tags: ["routine"],
+    createdAt: fmt(addDays(today, -3)), dueDate: fmt(today),
+    recurrence: { every: 3, unit: "day" },
+    description: "Living room + balcony"
+  },
+  {
     id: generateId(), title: "Grocery list", type: "list", circle: "home",
     priority: "medium", pinned: false, completed: false, tags: ["shopping"],
     createdAt: fmt(addDays(today, -1)),
