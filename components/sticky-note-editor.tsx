@@ -571,7 +571,18 @@ export default function StickyNoteEditor({
           {/* CHECKBOX (lower-left) */}
           {(type === "task" || type === "list" || type === "reminder") && (
             <div className="absolute bottom-2.5 left-3">
-              <button onClick={() => patch({ completed: !draft.completed })}
+              <button
+                aria-label={draft.completed ? "Mark incomplete" : "Mark complete"}
+                onClick={() => {
+                  if (onToggleComplete) {
+                    // toggleComplete in the store handles recurrence spawning
+                    onToggleComplete();
+                    // keep local draft in sync visually
+                    patch({ completed: !draft.completed });
+                  } else {
+                    patch({ completed: !draft.completed });
+                  }
+                }}
                 className="flex h-5 w-5 items-center justify-center rounded-sm border-2 transition-colors"
                 style={{ borderColor: draft.completed ? "#22c55e" : (dim ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.15)"), background: draft.completed ? "#22c55e" : (dim ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)") }}>
                 {draft.completed && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}

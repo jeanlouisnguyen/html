@@ -127,6 +127,7 @@ export default function Page() {
           initial={editingThing}
           originRect={originRect}
           onUpdate={(updates) => updateThing(editingThing.id, updates)}
+          onToggleComplete={() => toggleComplete(editingThing.id)}
           onDelete={() => { deleteThing(editingThing.id); setEditingThing(null); setOriginRect(null); }}
           onClose={() => { setEditingThing(null); setOriginRect(null); }}
         />
