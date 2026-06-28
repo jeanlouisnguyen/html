@@ -7,17 +7,17 @@ import type { Thing } from "@/lib/types";
 import { useSettings } from "@/lib/settings-store";
 import { getHolidayMap, type Holiday } from "@/lib/holidays";
 import { getCardBg, TYPE_ICONS } from "@/lib/card-helpers";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, CalendarDays, Calendar, CalendarRange, LayoutList, Rows3, CalendarClock } from "lucide-react";
 
 type CalView = "monthly" | "weekly" | "daily" | "quarterly" | "yearly" | "list";
 
-const VIEWS: { id: CalView; label: string }[] = [
-  { id: "monthly", label: "Month" },
-  { id: "weekly", label: "Week" },
-  { id: "daily", label: "Day" },
-  { id: "quarterly", label: "Quarter" },
-  { id: "yearly", label: "Year" },
-  { id: "list", label: "List" },
+const VIEWS: { id: CalView; label: string; icon: typeof CalendarDays }[] = [
+  { id: "monthly", label: "Month", icon: CalendarDays },
+  { id: "weekly", label: "Week", icon: CalendarRange },
+  { id: "daily", label: "Day", icon: Calendar },
+  { id: "quarterly", label: "Quarter", icon: Rows3 },
+  { id: "yearly", label: "Year", icon: CalendarClock },
+  { id: "list", label: "List", icon: LayoutList },
 ];
 
 function fmt(d: Date) { return d.toISOString().split("T")[0]; }
@@ -65,9 +65,10 @@ interface CalProps {
   onToggleComplete: (id: string) => void;
   onDailyDateChange?: (date: string | undefined) => void;
   onCreateAtTime?: (date: string, hour: number) => void;
+  onHeaderSlotChange?: (slot: React.ReactNode) => void;
 }
 
-export default function CalendarView({ things, onTapThing, onToggleComplete, onDailyDateChange, onCreateAtTime }: CalProps) {
+export default function CalendarView({ things, onTapThing, onToggleComplete, onDailyDateChange, onCreateAtTime, onHeaderSlotChange }: CalProps) {
   const { settings } = useSettings();
   const [view, setView] = useState<CalView>("monthly");
   const [current, setCurrent] = useState(new Date());
