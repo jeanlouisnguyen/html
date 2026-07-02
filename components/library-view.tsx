@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Thing, ThingType } from "@/lib/types";
 import { mediaStatusLabel } from "@/lib/card-helpers";
 import { Film, BookOpen, Disc3, Star, Plus } from "lucide-react";
@@ -11,6 +11,7 @@ interface LibraryViewProps {
   things: Thing[];
   onTap: (thing: Thing, rect?: OriginRect) => void;
   onAddType: (type: ThingType, rect?: OriginRect) => void;
+  onHeaderSlotChange?: (slot: React.ReactNode) => void;
 }
 
 type Shelf = "movie" | "book" | "song";
@@ -293,7 +294,7 @@ function RecordSleeve({ thing, onTap }: { thing: Thing; onTap: LibraryViewProps[
   );
 }
 
-export default function LibraryView({ things, onTap, onAddType }: LibraryViewProps) {
+export default function LibraryView({ things, onTap, onAddType, onHeaderSlotChange }: LibraryViewProps) {
   const [shelf, setShelf] = useState<Shelf>("movie");
 
   const byType = useMemo(() => ({
@@ -301,6 +302,30 @@ export default function LibraryView({ things, onTap, onAddType }: LibraryViewPro
     book: things.filter((t) => t.type === "book"),
     song: things.filter((t) => t.type === "song"),
   }), [things]);
+
+  useEffect(() => {
+    onHeaderSlotChange?.(
+      <div className="flex items-center gap-0.5">
+        {SHELVES.map((s) => {
+          const Icon = s.icon;
+          const active = shelf === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setShelf(s.id)}
+              aria-label={s.label}
+              title={s.label}
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+              style={{ background: active ? "#1a1e2e" : "transparent", color: active ? "#fff" : "#8a8f9c" }}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          );
+        })}
+      </div>
+    );
+    return () => onHeaderSlotChange?.(null);
+  }, [shelf, onHeaderSlotChange]);
 
   const items = byType[shelf];
   const dark = shelf !== "book";
@@ -313,32 +338,6 @@ export default function LibraryView({ things, onTap, onAddType }: LibraryViewPro
 
   return (
     <div className="flex h-full flex-col" style={{ background: bg }}>
-      {/* Shelf switcher */}
-      <div className="flex flex-shrink-0 items-center justify-center gap-2 px-3 pt-3">
-        {SHELVES.map((s) => {
-          const active = shelf === s.id;
-          const Icon = s.icon;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setShelf(s.id)}
-              className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95"
-              style={{
-                background: active ? (dark ? "#fff" : "#3a2a18") : (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
-                color: active ? (dark ? "#111" : "#fff") : (dark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)"),
-              }}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {s.label}
-              <span className="rounded-full px-1.5 text-[9px]"
-                style={{ background: active ? "rgba(0,0,0,0.12)" : "transparent" }}>
-                {byType[s.id].length}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Layout */}
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (

@@ -10,6 +10,7 @@ import CalendarView from "@/components/calendar-view";
 import LibraryView from "@/components/library-view";
 import StickyNoteEditor, { type OriginRect } from "@/components/sticky-note-editor";
 import SettingsView from "@/components/settings-view";
+import RemindersPanel from "@/components/reminders-panel";
 import FabMenu from "@/components/fab-menu";
 
 /* Map active tab to default Thing type */
@@ -19,7 +20,6 @@ function tabToDefaultType(tab: Tab): ThingType {
     case "tasks": return "task";
     case "notes": return "note";
     case "budget": return "expense";
-    case "reminders": return "reminder";
     default: return "task";
   }
 }
@@ -31,6 +31,7 @@ export default function Page() {
   const [editingThing, setEditingThing] = useState<Thing | null>(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
   const [calendarDailyDate, setCalendarDailyDate] = useState<string | undefined>();
   const [createStartTime, setCreateStartTime] = useState<string | undefined>();
   const [createPrefillDate, setCreatePrefillDate] = useState<string | undefined>();
@@ -43,7 +44,6 @@ export default function Page() {
   const tasks = things.filter((t) => t.type === "task");
   const notes = things.filter((t) => t.type === "note");
   const budgetTypes = things.filter((t) => t.type === "expense" || t.type === "subscription");
-  const reminders = things.filter((t) => t.type === "reminder");
 
   const handleTap = (thing: Thing, rect?: OriginRect) => {
     setOriginRect(rect ?? null);
@@ -86,7 +86,7 @@ export default function Page() {
 
   return (
     <>
-      <AppShell activeTab={tab} onTabChange={handleTabChange} onSettingsOpen={() => setSettingsOpen(true)} headerSlot={headerSlot}>
+      <AppShell activeTab={tab} onTabChange={handleTabChange} onSettingsOpen={() => setSettingsOpen(true)} onRemindersOpen={() => setRemindersOpen(true)} headerSlot={headerSlot}>
         {tab === "board" && (
           <BoardView things={things} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
@@ -97,6 +97,7 @@ export default function Page() {
             onToggleComplete={handleToggle}
             onDailyDateChange={setCalendarDailyDate}
             onCreateAtTime={handleCreateAtTime}
+            onHeaderSlotChange={setHeaderSlot}
           />
         )}
         {tab === "tasks" && (
@@ -108,11 +109,8 @@ export default function Page() {
         {tab === "budget" && (
           <BoardView things={budgetTypes} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
-        {tab === "reminders" && (
-          <BoardView things={reminders} onTap={handleTap} onAdd={handleAdd} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
-        )}
         {tab === "library" && (
-          <LibraryView things={things} onTap={handleTap} onAddType={handleAddType} />
+          <LibraryView things={things} onTap={handleTap} onAddType={handleAddType} onHeaderSlotChange={setHeaderSlot} />
         )}
 
         {/* Global FAB -- visible on Calendar + Library tabs (BoardView has its own) */}
@@ -152,6 +150,14 @@ export default function Page() {
       {settingsOpen && (
         <SettingsView onClose={() => setSettingsOpen(false)} />
       )}
+
+      <RemindersPanel
+        open={remindersOpen}
+        things={things}
+        onClose={() => setRemindersOpen(false)}
+        onTapThing={(t) => { setRemindersOpen(false); handleTap(t); }}
+        onToggleComplete={handleToggle}
+      />
     </>
   );
 }

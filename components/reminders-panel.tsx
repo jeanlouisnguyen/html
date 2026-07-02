@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { Thing } from "@/lib/types";
 import { X, Bell, BellOff } from "lucide-react";
 import ThingCard from "@/components/thing-card";
@@ -11,59 +11,85 @@ interface RemindersPanelProps {
   things: Thing[];
   open: boolean;
   onClose: () => void;
-  onTap: (thing: Thing, rect?: OriginRect) => void;
+  onTapThing: (thing: Thing, rect?: OriginRect) => void;
+  onToggleComplete?: (id: string) => void;
 }
 
-const BATCH = 20;
+const BATCH = 15;
 
-/** Returns the best date string for a thing to sort/display as a reminder. */
+/** Best date string for a thing to sort/display as a reminder entry. */
 function thingDate(t: Thing): string {
   return t.dueDate || t.eventDate || t.createdAt || "";
 }
 
-/** All things that have any date (everything is a potential reminder entry). */
-function buildFeed(things: Thing[]): Thing[] {
-  return [...things]
-    .filter((t) => thingDate(t) !== "")
-    .sort((a, b) => {
-      const da = thingDate(a);
-      const db = thingDate(b);
-      // upcoming first (ascending), past at the bottom
-      return da < db ? -1 : da > db ? 1 : 0;
-    });
-}
-
-export default function RemindersPanel({ things, open, onClose, onTap }: RemindersPanelProps) {
+export default function RemindersPanel({ things, open, onClose, onTapThing }: RemindersPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [animIn, setAnimIn] = useState(false);
-  const [page, setPage] = useState(1);
 
-  // Swipe-right to close
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const didInitialScroll = useRef(false);
 
-  // Mount / unmount with animation
+  // Full ascending (chronological) feed of every dated entry.
+  const feed = useMemo(
+    () =>
+      [...things]
+        .filter((t) => thingDate(t) !== "")
+        .sort((a, b) => {
+          const da = thingDate(a);
+          const db = thingDate(b);
+          return da < db ? -1 : da > db ? 1 : 0;
+        }),
+    [things]
+  );
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  // Index of the first upcoming (today or later) entry — the "soonest" anchor.
+  const anchorIdx = useMemo(() => {
+    const i = feed.findIndex((t) => thingDate(t) >= todayStr);
+    return i === -1 ? Math.max(0, feed.length - 1) : i;
+  }, [feed, todayStr]);
+
+  // Windowed range [start, end) expands in both directions as the user scrolls.
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(0);
+
+  // Mount / unmount with slide animation.
   useEffect(() => {
     if (open) {
       setVisible(true);
+      didInitialScroll.current = false;
+      setStart(Math.max(0, anchorIdx - BATCH));
+      setEnd(Math.min(feed.length, anchorIdx + BATCH));
       requestAnimationFrame(() => requestAnimationFrame(() => setAnimIn(true)));
-      setPage(1);
     } else {
       setAnimIn(false);
       const t = setTimeout(() => setVisible(false), 280);
       return () => clearTimeout(t);
     }
-  }, [open]);
+  }, [open, anchorIdx, feed.length]);
 
-  // Click outside to close
+  // After first render, scroll so the soonest entry sits near the top
+  // (past entries live above it, revealed by scrolling up).
+  useLayoutEffect(() => {
+    if (!visible || didInitialScroll.current) return;
+    const el = scrollRef.current;
+    const anchor = anchorRef.current;
+    if (el && anchor) {
+      el.scrollTop = Math.max(0, anchor.offsetTop - 8);
+      didInitialScroll.current = true;
+    }
+  }, [visible, start, end]);
+
+  // Close on outside click.
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -79,28 +105,40 @@ export default function RemindersPanel({ things, open, onClose, onTap }: Reminde
     if (dx > 60 && dy < 60) onClose();
   };
 
-  const feed = buildFeed(things);
-  const todayStr = new Date().toISOString().split("T")[0];
-
-  // Infinite scroll — load more when reaching bottom
+  // Batched loading in both directions.
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) {
-      setPage((p) => (p * BATCH < feed.length ? p + 1 : p));
+    // Near bottom -> load more future entries.
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+      setEnd((e) => Math.min(feed.length, e + BATCH));
+    }
+    // Near top -> load more past entries (preserve scroll position).
+    if (el.scrollTop <= 100) {
+      setStart((s) => {
+        if (s === 0) return 0;
+        const next = Math.max(0, s - BATCH);
+        const prevHeight = el.scrollHeight;
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop += scrollRef.current.scrollHeight - prevHeight;
+          }
+        });
+        return next;
+      });
     }
   }, [feed.length]);
 
-  const shown = feed.slice(0, page * BATCH);
-
   if (!visible) return null;
+
+  const shown = feed.slice(start, end);
 
   return (
     <>
       {/* Scrim */}
       <div
-        className="fixed inset-0 z-40 transition-opacity duration-280"
-        style={{ background: "rgba(0,0,0,0.45)", opacity: animIn ? 1 : 0, backdropFilter: "blur(2px)" }}
+        className="fixed inset-0 z-40 transition-opacity"
+        style={{ background: "rgba(0,0,0,0.45)", opacity: animIn ? 1 : 0, backdropFilter: "blur(2px)", transitionDuration: "280ms" }}
         aria-hidden="true"
       />
 
@@ -109,12 +147,15 @@ export default function RemindersPanel({ things, open, onClose, onTap }: Reminde
         ref={panelRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="fixed inset-y-0 right-0 z-50 flex w-[88vw] max-w-sm flex-col shadow-2xl transition-transform duration-280"
+        className="fixed inset-y-0 right-0 z-50 flex w-[88vw] max-w-sm flex-col shadow-2xl"
         style={{
           background: "hsl(var(--card))",
           borderLeft: "1px solid hsl(var(--border))",
           transform: animIn ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 280ms cubic-bezier(0.22,1,0.36,1)",
         }}
+        role="dialog"
+        aria-label="Reminders"
       >
         {/* Header */}
         <div className="flex h-12 flex-shrink-0 items-center gap-2 border-b border-border px-4">
@@ -136,32 +177,36 @@ export default function RemindersPanel({ things, open, onClose, onTap }: Reminde
           className="flex-1 overflow-y-auto px-3 py-3"
           style={{ overscrollBehavior: "contain" }}
         >
-          {shown.length === 0 ? (
+          {feed.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 pt-20 text-center">
               <BellOff className="h-10 w-10 text-muted-foreground/40" />
               <p className="text-sm font-semibold text-muted-foreground">No entries yet</p>
-              <p className="text-xs text-muted-foreground/60">Items with due dates will appear here in chronological order.</p>
+              <p className="text-xs text-muted-foreground/60">Items with dates appear here, soonest first.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
+              {start > 0 && (
+                <p className="py-2 text-center text-[10px] text-muted-foreground">↑ Scroll up for earlier</p>
+              )}
               {shown.map((t) => {
                 const d = thingDate(t);
                 const isPast = d < todayStr;
+                const isAnchor = feed.indexOf(t) === anchorIdx;
                 return (
-                  <div key={t.id} style={{ opacity: isPast ? 0.45 : 1 }}>
-                    {/* Date label */}
+                  <div
+                    key={t.id}
+                    ref={isAnchor ? anchorRef : undefined}
+                    style={{ opacity: isPast ? 0.45 : 1 }}
+                  >
                     <p className="mb-1 px-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       {d === todayStr ? "Today" : isPast ? `Past · ${d}` : d}
                     </p>
-                    <ThingCard
-                      thing={t}
-                      onTap={(rect) => { onTap(t, rect); onClose(); }}
-                    />
+                    <ThingCard thing={t} onTap={(rect) => { onTapThing(t, rect); onClose(); }} />
                   </div>
                 );
               })}
-              {page * BATCH < feed.length && (
-                <p className="py-4 text-center text-[10px] text-muted-foreground">Scroll for more…</p>
+              {end < feed.length && (
+                <p className="py-2 text-center text-[10px] text-muted-foreground">↓ Scroll for more</p>
               )}
             </div>
           )}

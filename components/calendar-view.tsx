@@ -104,27 +104,32 @@ export default function CalendarView({ things, onTapThing, onToggleComplete, onD
     }
   }, [view, current, onDailyDateChange]);
 
-  return (
-    <div className="flex h-full flex-col" style={{ background: CAL_BG }}>
-      {/* View tabs -- simple pill style */}
-      <div className="mx-3 mt-2 mb-1">
-        <div className="subnav flex items-center gap-0.5 overflow-x-auto px-1 py-1 scrollbar-hide">
-          {VIEWS.map((v) => (
+  useEffect(() => {
+    onHeaderSlotChange?.(
+      <div className="flex items-center gap-0.5">
+        {VIEWS.map((v) => {
+          const Icon = v.icon;
+          const active = view === v.id;
+          return (
             <button
               key={v.id}
               onClick={() => setView(v.id)}
-              className="flex-shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-colors"
-              style={{
-                background: view === v.id ? "#1a1e2e" : "transparent",
-                color: view === v.id ? "#fff" : "#888",
-              }}
+              aria-label={v.label}
+              title={v.label}
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+              style={{ background: active ? "#1a1e2e" : "transparent", color: active ? "#fff" : "#8a8f9c" }}
             >
-              {v.label}
+              <Icon className="h-4 w-4" />
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
+    );
+    return () => onHeaderSlotChange?.(null);
+  }, [view, onHeaderSlotChange]);
 
+  return (
+    <div className="flex h-full flex-col" style={{ background: CAL_BG }}>
       {/* Navigation header */}
       <div className="flex flex-shrink-0 items-center justify-between px-4 py-1.5">
         <button onClick={() => nav(-1)} className="p-1" style={{ color: "#1a1e2e" }}><ChevronLeft className="h-5 w-5" /></button>
