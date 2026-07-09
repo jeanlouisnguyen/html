@@ -7,6 +7,7 @@ import type { Thing } from "@/lib/types";
 import { useSettings } from "@/lib/settings-store";
 import { getHolidayMap, type Holiday } from "@/lib/holidays";
 import { getCardBg, TYPE_ICONS } from "@/lib/card-helpers";
+import { toYMD } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Check, CalendarDays, Calendar, CalendarRange, LayoutList, Rows3, CalendarClock } from "lucide-react";
 
 type CalView = "monthly" | "weekly" | "daily" | "quarterly" | "yearly" | "list";
@@ -20,7 +21,7 @@ const VIEWS: { id: CalView; label: string; icon: typeof CalendarDays }[] = [
   { id: "list", label: "List", icon: LayoutList },
 ];
 
-function fmt(d: Date) { return d.toISOString().split("T")[0]; }
+function fmt(d: Date) { return toYMD(d); }
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
 function getISOWeek(d: Date): number {

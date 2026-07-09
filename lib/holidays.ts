@@ -27,8 +27,10 @@ function easterSunday(year: number): Date {
   return new Date(year, month - 1, day);
 }
 
+import { toYMD } from "./utils";
+
 function fmt(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return toYMD(d);
 }
 
 function addDays(d: Date, n: number): Date {

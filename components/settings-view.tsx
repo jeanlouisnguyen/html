@@ -185,6 +185,18 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
   const [iconPicker, setIconPicker] = useState<{ target: string; currentValue: string } | null>(null);
   const [colorPicker, setColorPicker] = useState<{ target: string; currentValue: string } | null>(null);
 
+  /* Escape closes settings (pickers close first if one is open) */
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (iconPicker) setIconPicker(null);
+      else if (colorPicker) setColorPicker(null);
+      else onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [iconPicker, colorPicker, onClose]);
+
   /* Expanded section */
   const [expanded, setExpanded] = useState<string | null>(null);
   const toggle = (s: string) => setExpanded(expanded === s ? null : s);

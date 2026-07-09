@@ -1,4 +1,5 @@
 import type { Thing, ThingType, Circle, Priority } from "./types";
+import { toYMD } from "./utils";
 import {
   CheckSquare,
   FileText,
@@ -108,12 +109,11 @@ export function getPriorityDot(p: Priority | undefined): string {
 // Color logic: determine card background
 export function getCardBg(thing: Thing): string {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = toYMD(today);
 
   const in7 = new Date(today);
   in7.setDate(in7.getDate() + 7);
-  const in7Str = in7.toISOString().split("T")[0];
+  const in7Str = toYMD(in7);
 
   // Completed tasks or past events -> green
   if (thing.type === "task" && thing.completed) return "#c8f7c5";

@@ -3,13 +3,14 @@
 import { useSyncExternalStore, useCallback } from "react";
 import type { Thing } from "./types";
 import { nextOccurrence } from "./recurrence";
+import { toYMD } from "./utils";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
 const today = new Date();
-const fmt = (d: Date) => d.toISOString().split("T")[0];
+const fmt = toYMD;
 const addDays = (d: Date, n: number) => {
   const r = new Date(d);
   r.setDate(r.getDate() + n);

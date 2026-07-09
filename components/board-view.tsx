@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Thing, ThingType, Circle, Priority } from "@/lib/types";
 import { TYPE_ICONS, CIRCLE_ICONS, getCardBg, getCardTextColor } from "@/lib/card-helpers";
+import { toYMD } from "@/lib/utils";
 import ThingCard from "./thing-card";
 import FabMenu from "./fab-menu";
 import {
@@ -153,12 +154,12 @@ export default function BoardView({ things, onTap, onAdd, onAddType, onHeaderSlo
   }, [typeFilter, circleFilter, priorityFilter, dateFilter, statusFilter]);
 
   const { pinned, unpinned, allFiltered } = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split("T")[0];
+    const today = new Date();
+    const todayStr = toYMD(today);
     const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
-    const weekStr = weekEnd.toISOString().split("T")[0];
+    const weekStr = toYMD(weekEnd);
     const monthEnd = new Date(today); monthEnd.setDate(monthEnd.getDate() + 30);
-    const monthStr = monthEnd.toISOString().split("T")[0];
+    const monthStr = toYMD(monthEnd);
 
     let list = [...things];
     if (typeFilter) list = list.filter((t) => t.type === typeFilter);

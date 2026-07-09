@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { Thing } from "@/lib/types";
+import { todayYMD } from "@/lib/utils";
 import { X, Bell, BellOff } from "lucide-react";
 import ThingCard from "@/components/thing-card";
 
@@ -12,7 +13,6 @@ interface RemindersPanelProps {
   open: boolean;
   onClose: () => void;
   onTapThing: (thing: Thing, rect?: OriginRect) => void;
-  onToggleComplete?: (id: string) => void;
 }
 
 const BATCH = 15;
@@ -46,7 +46,7 @@ export default function RemindersPanel({ things, open, onClose, onTapThing }: Re
     [things]
   );
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayYMD();
 
   // Index of the first upcoming (today or later) entry — the "soonest" anchor.
   const anchorIdx = useMemo(() => {
@@ -85,14 +85,21 @@ export default function RemindersPanel({ things, open, onClose, onTapThing }: Re
     }
   }, [visible, start, end]);
 
-  // Close on outside click.
+  // Close on outside click or Escape.
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const clickHandler = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", clickHandler);
+    document.addEventListener("keydown", keyHandler);
+    return () => {
+      document.removeEventListener("mousedown", clickHandler);
+      document.removeEventListener("keydown", keyHandler);
+    };
   }, [open, onClose]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -188,10 +195,10 @@ export default function RemindersPanel({ things, open, onClose, onTapThing }: Re
               {start > 0 && (
                 <p className="py-2 text-center text-[10px] text-muted-foreground">↑ Scroll up for earlier</p>
               )}
-              {shown.map((t) => {
+              {shown.map((t, i) => {
                 const d = thingDate(t);
                 const isPast = d < todayStr;
-                const isAnchor = feed.indexOf(t) === anchorIdx;
+                const isAnchor = start + i === anchorIdx;
                 return (
                   <div
                     key={t.id}
@@ -201,7 +208,7 @@ export default function RemindersPanel({ things, open, onClose, onTapThing }: Re
                     <p className="mb-1 px-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       {d === todayStr ? "Today" : isPast ? `Past · ${d}` : d}
                     </p>
-                    <ThingCard thing={t} onTap={(rect) => { onTapThing(t, rect); onClose(); }} />
+                    <ThingCard thing={t} onTap={(rect) => onTapThing(t, rect)} />
                   </div>
                 );
               })}

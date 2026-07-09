@@ -1,4 +1,5 @@
 import type { Recurrence } from "./types";
+import { toYMD } from "./utils";
 
 /** Add a recurrence interval to a YYYY-MM-DD date string. Returns YYYY-MM-DD. */
 export function advanceDate(dateStr: string, rec: Recurrence): string {
@@ -18,7 +19,7 @@ export function advanceDate(dateStr: string, rec: Recurrence): string {
       d.setFullYear(d.getFullYear() + n);
       break;
   }
-  return d.toISOString().split("T")[0];
+  return toYMD(d);
 }
 
 /**

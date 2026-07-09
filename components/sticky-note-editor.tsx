@@ -228,6 +228,18 @@ export default function StickyNoteEditor({
     setTimeout(onClose, 200);
   }, [isEdit, onUpdate, onClose]);
 
+  /* Escape closes the editor (popups close first; ignored while the throw game owns the screen) */
+  useEffect(() => {
+    if (gameActive) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (activePopup) setActivePopup(null);
+      else handleClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [activePopup, handleClose, gameActive]);
+
   /* ---------- create save ---------- */
   const handleCreate = async () => {
     if (!canSave) return;
@@ -545,8 +557,9 @@ export default function StickyNoteEditor({
               </span>
             ))}
             <input className="w-16 bg-transparent text-[10px] outline-none placeholder:opacity-30" style={{ color: textColor }}
-              placeholder="#tag" onKeyDown={(e) => {
-                if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                  placeholder="#tag" onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
                   patch({ tags: [...draft.tags, e.currentTarget.value.trim().replace(/^#/, "")] });
                   e.currentTarget.value = "";
                 }

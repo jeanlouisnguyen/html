@@ -136,7 +136,6 @@ export default function Page() {
           mode="create"
           initial={{
             type: defaultType,
-            circle: tab === "tasks" || tab === "notes" ? undefined : undefined,
             dueDate: defaultType === "event" || defaultType === "birthday" ? undefined : prefillDate,
             eventDate: defaultType === "event" || defaultType === "birthday" ? prefillDate : undefined,
             startTime: createStartTime,
@@ -155,8 +154,7 @@ export default function Page() {
         open={remindersOpen}
         things={things}
         onClose={() => setRemindersOpen(false)}
-        onTapThing={(t) => { setRemindersOpen(false); handleTap(t); }}
-        onToggleComplete={handleToggle}
+        onTapThing={(t, rect) => { setRemindersOpen(false); handleTap(t, rect); }}
       />
     </>
   );

@@ -68,6 +68,13 @@ export default function DeleteThrowGame({ noteRect, bg, title, onComplete, onCan
     startY: vh - 150,
   });
 
+  /* Escape = "Keep it" (back out of the game) */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onCancel]);
+
   const ballRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: geo.current.startX, y: geo.current.startY });
   const vel = useRef({ x: 0, y: 0 });
