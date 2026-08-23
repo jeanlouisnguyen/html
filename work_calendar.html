@@ -377,7 +377,6 @@
                 }
             } catch (e) {
                 // localStorage not available in sandboxed environment
-                console.log('LocalStorage not available, using in-memory storage');
                 workData = {};
             }
         }
@@ -388,7 +387,6 @@
                 localStorage.setItem('workCalendarData', JSON.stringify(workData));
             } catch (e) {
                 // localStorage not available, data will persist only during session
-                console.log('LocalStorage not available, data stored in memory only');
             }
         }
 
