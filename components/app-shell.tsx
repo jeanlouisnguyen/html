@@ -64,7 +64,7 @@ export default function AppShell({
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-hidden">{children}</main>
 
       {/* Bottom nav */}
       <nav

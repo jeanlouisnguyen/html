@@ -8,7 +8,8 @@ export default function LoadingScreen({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     const start = Date.now();
-    const duration = 2500;
+    // Seed data is synchronous; keep the branded transition brief so the app is interactive quickly.
+    const duration = 700;
     const tick = () => {
       const elapsed = Date.now() - start;
       const pct = Math.min(elapsed / duration, 1);
