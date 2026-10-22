@@ -2,6 +2,7 @@
   "name": "pock-it",
   "version": "0.1.2",
   "private": true,
+  "packageManager": "pnpm@10.12.4",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
